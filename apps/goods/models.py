@@ -3,6 +3,7 @@ from django.db import models
 class Category(models.Model):
     """商品类别：支持无限级分类"""
     name = models.CharField(default="", max_length=30, verbose_name="类别名", help_text="类别名")
+    is_delete = models.BooleanField(default=False, verbose_name="是否删除")
     parent_category = models.ForeignKey("self", null=True, blank=True, on_delete=models.CASCADE, verbose_name="父类目", related_name="sub_cat")
     is_tab = models.BooleanField(default=False, verbose_name="是否导航", help_text="是否显示在顶部导航")
     add_time = models.DateTimeField(auto_now_add=True, verbose_name="添加时间")
@@ -18,6 +19,7 @@ class Product(models.Model):
     """商品信息"""
     category = models.ForeignKey(Category, on_delete=models.CASCADE, verbose_name="商品类目")
     name = models.CharField(max_length=100, verbose_name="商品名")
+    is_delete = models.BooleanField(default=False, verbose_name="是否删除")
     goods_sn = models.CharField(max_length=50, default="", verbose_name="商品唯一货号")
     sold_num = models.IntegerField(default=0, verbose_name="商品销售量")
     goods_num = models.IntegerField(default=0, verbose_name="库存数")

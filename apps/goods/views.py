@@ -7,6 +7,7 @@ from .models import Product, Category, Banner
 from .serializers import ProductSerializer, CategorySerializer, BannerSerializer
 from .filters import ProductFilter
 from rest_framework.views import APIView
+from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser
 from django.core.files.storage import default_storage
@@ -26,13 +27,20 @@ class ProductViewSet(viewsets.ModelViewSet):
     商品列表页：使用 select_related 优化分类外键查询
     """
     # 优化点：一次性预加载 category 信息，避免序列化时重复查询数据库
-    queryset = Product.objects.all().select_related('category').order_by('id')
+    queryset = Product.objects.filter(is_delete=False).select_related('category').order_by('id')
     serializer_class = ProductSerializer
     permission_classes = (IsAdminUserOrReadOnly,)
     filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
     filterset_class = ProductFilter
     search_fields = ('name', 'goods_brief')
     ordering_fields = ('sold_num', 'shop_price')
+
+    def destroy(self, request, *args, **kwargs):
+        """重写删除方法实现逻辑删除"""
+        instance = self.get_object()
+        instance.is_delete = True
+        instance.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class GoodsPagination(PageNumberPagination):
@@ -69,10 +77,19 @@ class CategoryViewSet(viewsets.ModelViewSet):
     """
     商品分类管理 (增删改查)
     """
-    queryset = Category.objects.all().order_by('id')
+    queryset = Category.objects.filter(is_delete=False).order_by('id')
     serializer_class = CategorySerializer
     # 【安全升级】：替换 AllowAny
     permission_classes = (IsAdminUserOrReadOnly,)
+
+    def destroy(self, request, *args, **kwargs):
+        """重写删除方法实现逻辑删除"""
+        instance = self.get_object()
+        # 进阶建议：删除分类时，也可以逻辑删除该分类下的所有商品
+        # Product.objects.filter(category=instance).update(is_delete=True)
+        instance.is_delete = True
+        instance.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 class BannerViewSet(viewsets.ModelViewSet):
     """
