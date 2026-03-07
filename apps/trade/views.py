@@ -7,7 +7,32 @@ import time
 from rest_framework import mixins
 from .models import OrderInfo, OrderGoods
 from .serializers import OrderSerializer, OrderDetailSerializer
+from rest_framework import viewsets, mixins
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from .models import OrderInfo, ShoppingCart
+from .serializers import OrderSerializer, OrderDetailSerializer, ShoppingCartDetailSerializer
+from .tasks import close_order_task  # 导入异步任务
 
+class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin,
+                   mixins.CreateModelMixin, mixins.DestroyModelMixin,
+                   viewsets.GenericViewSet):
+    """
+    订单管理：使用 prefetch_related 优化订单商品详情查询
+    """
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (JWTAuthentication,)
+
+    def get_queryset(self):
+        # 优化点：预加载关联的 goods (OrderGoods)，解决订单列表展示时的 N+1 问题
+        return OrderInfo.objects.filter(user=self.request.user).prefetch_related('goods')
+
+    def perform_create(self, serializer):
+        order = serializer.save()
+        # 【异步任务应用】：下单后开启一个 30 分钟后执行的延时任务，检查支付状态
+        # 如果 30 分钟后未支付，close_order_task 将自动关闭该订单
+        close_order_task.apply_async((order.id,), countdown=30 * 60)
+        return order
 class ShoppingCartViewSet(viewsets.ModelViewSet):
     """
     购物车功能

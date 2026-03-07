@@ -196,3 +196,8 @@ AUTH_USER_MODEL = 'users.UserProfile'
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 # 访问 URL 前缀：http://localhost:8000/media/xxx.jpg
 MEDIA_URL = "/media/"
+# 在文件末尾添加 Celery 配置
+CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0'  # 使用 Redis 作为消息代理
+CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/1'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'

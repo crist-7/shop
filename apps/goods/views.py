@@ -14,7 +14,25 @@ from django.core.files.base import ContentFile
 from django.conf import settings
 import os
 import uuid
+from rest_framework import mixins, viewsets, filters
+from django_filters.rest_framework import DjangoFilterBackend
+from .models import Product, Category, Banner
+from .serializers import ProductSerializer, CategorySerializer, BannerSerializer
+from .filters import ProductFilter
+from .permissions import IsAdminUserOrReadOnly
 
+class ProductViewSet(viewsets.ModelViewSet):
+    """
+    商品列表页：使用 select_related 优化分类外键查询
+    """
+    # 优化点：一次性预加载 category 信息，避免序列化时重复查询数据库
+    queryset = Product.objects.all().select_related('category').order_by('id')
+    serializer_class = ProductSerializer
+    permission_classes = (IsAdminUserOrReadOnly,)
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
+    filterset_class = ProductFilter
+    search_fields = ('name', 'goods_brief')
+    ordering_fields = ('sold_num', 'shop_price')
 
 
 class GoodsPagination(PageNumberPagination):
