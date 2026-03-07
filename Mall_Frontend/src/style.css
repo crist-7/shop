@@ -1,0 +1,28 @@
+/* 1. 彻底清除浏览器默认的内外边距 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* 2. 设置全局字体和舒适的浅色背景 */
+body {
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
+  background-color: #f5f7fa;
+  color: #333;
+  -webkit-font-smoothing: antialiased; /* 让字体在 Mac/Win 上都更清晰 */
+}
+
+/* 3. 去掉 a 标签自带的丑陋下划线 */
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* 4. 确保 Vue 的根节点撑满整个屏幕，解决左侧挤压问题！ */
+#app {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
