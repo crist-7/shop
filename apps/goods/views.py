@@ -83,12 +83,11 @@ class CategoryViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAdminUserOrReadOnly,)
 
     def destroy(self, request, *args, **kwargs):
-        """重写删除方法实现逻辑删除"""
         instance = self.get_object()
-        # 进阶建议：删除分类时，也可以逻辑删除该分类下的所有商品
-        # Product.objects.filter(category=instance).update(is_delete=True)
         instance.is_delete = True
         instance.save()
+        # 可选：同步逻辑删除该分类下的所有商品
+        Product.objects.filter(category=instance).update(is_delete=True)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 class BannerViewSet(viewsets.ModelViewSet):
