@@ -28,9 +28,9 @@ class ShoppingCartViewSet(viewsets.ModelViewSet):
     pagination_class = None
 
     def get_queryset(self):
-        # 优化点：预加载关联的 goods，解决购物车列表展示时的 N+1 问题
+        # 优化点：预加载关联的 goods 及 goods 的 category，解决购物车列表展示时的 N+1 问题
         # 过滤逻辑删除的商品：只显示未被逻辑删除的商品
-        return ShoppingCart.objects.filter(user=self.request.user, goods__is_delete=False).select_related('goods').order_by('-add_time')
+        return ShoppingCart.objects.filter(user=self.request.user, goods__is_delete=False).select_related('goods__category').order_by('-add_time')
 
     def get_serializer_class(self):
         """
@@ -56,13 +56,16 @@ class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
 
     def get_queryset(self):
         # 优化点：使用 Prefetch 对象进行更细粒度的预加载控制
-        # 预加载关联的 OrderGoods，以及 OrderGoods 中关联的 Product
+        # 预加载关联的 OrderGoods，以及 OrderGoods 中关联的 Product（包括 Product 的 category）
+        # 同时使用 select_related 预加载订单关联的 User，避免序列化时的 N+1 查询
         from django.db.models import Prefetch
         from .models import OrderGoods
 
-        return OrderInfo.objects.filter(user=self.request.user).prefetch_related(
-            Prefetch('goods', queryset=OrderGoods.objects.select_related('goods'))
-        )
+        return OrderInfo.objects.filter(user=self.request.user)\
+            .select_related('user')\
+            .prefetch_related(
+                Prefetch('goods', queryset=OrderGoods.objects.select_related('goods__category'))
+            )
 
     def get_serializer_class(self):
         # 动态选择序列化器
