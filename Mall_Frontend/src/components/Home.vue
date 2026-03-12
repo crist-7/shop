@@ -227,27 +227,42 @@ onMounted(() => {
 .nav-item { line-height: 50px; cursor: pointer; padding: 0 var(--space-md); font-size: 16px; color: var(--text-secondary); transition: all var(--transition-fast); }
 .nav-item:hover { color: var(--primary-color); }
 .nav-item.active { color: var(--primary-color); border-bottom: 3px solid var(--primary-color); font-weight: bold; background: var(--bg-hover); border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
-.banner-section { max-width: var(--container-xl); margin: var(--space-xl) auto; }
-.banner-content { height: 100%; border-radius: var(--radius-lg); overflow: hidden; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-md); transition: box-shadow var(--transition-base); }
-.banner-content:hover { box-shadow: var(--shadow-hover); }
-.main-content { max-width: var(--container-xl); margin: 0 auto; padding-bottom: var(--space-4xl); padding-top: var(--space-xl); }
-.goods-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--space-xl); margin-top: var(--space-xl); }
+.banner-section { max-width: var(--container-xl); margin: var(--space-2xl) auto; }
+.banner-content {
+  height: 100%;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-lg), var(--glow-soft);
+  transition: all var(--transition-base);
+  position: relative;
+}
+.banner-content:hover {
+  box-shadow: var(--shadow-xl), var(--glow-primary);
+  transform: translateY(-4px);
+}
+.main-content { max-width: var(--container-xl); margin: 0 auto; padding-bottom: var(--space-5xl); padding-top: var(--space-2xl); }
+.goods-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--space-2xl); margin-top: var(--space-2xl); }
 .goods-card {
   overflow: hidden;
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--bg-tertiary);
+  border-radius: var(--radius-lg); /* 12px 大圆角 */
   background: var(--bg-primary);
   box-shadow: var(--shadow-md);
   transition: all var(--transition-base);
   height: 100%;
   display: flex;
   flex-direction: column;
+  position: relative;
+  border: 1px solid transparent; /* 透明边框保留布局空间 */
+  background-clip: padding-box; /* 确保背景不延伸到边框区域 */
 }
 
 .goods-card:hover {
-  box-shadow: var(--shadow-hover);
-  transform: translateY(-8px);
-  border-color: var(--primary-light);
+  box-shadow: var(--shadow-multi-glow); /* 彩色弥散阴影 */
+  transform: translateY(-12px) scale(1.02); /* 更明显的浮起效果 */
+  border-color: transparent; /* 移除边框 */
 }
 
 .image-wrapper {

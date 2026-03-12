@@ -34,3 +34,195 @@ html, body, #app {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-secondary);
 }
+
+/* 全局卡片样式 - 白色圆角卡片 */
+.global-card {
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--bg-tertiary);
+  transition: all var(--transition-base);
+}
+
+.global-card:hover {
+  box-shadow: var(--shadow-hover);
+  border-color: var(--primary-light);
+}
+
+/* 全局背景设置 */
+.el-main {
+  background-color: var(--bg-secondary) !important;
+}
+
+/* 表格卡片样式 */
+.el-table {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+/* 表单卡片样式 */
+.el-form {
+  padding: var(--space-xl);
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 按钮圆角增强 */
+.el-button {
+  border-radius: var(--radius-md) !important;
+  transition: all var(--transition-fast) !important;
+  border: 1px solid var(--bg-tertiary) !important;
+}
+
+.el-button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--primary-light) !important;
+}
+
+.el-button--primary {
+  border-color: var(--primary-color) !important;
+}
+
+/* 输入框样式 */
+.el-input, .el-select, .el-date-editor {
+  border-radius: var(--radius-md) !important;
+}
+
+.el-input__wrapper {
+  border-radius: var(--radius-md) !important;
+  border: 1px solid var(--bg-tertiary) !important;
+  transition: all var(--transition-fast) !important;
+  box-shadow: none !important;
+}
+
+.el-input__wrapper:hover,
+.el-input__wrapper.is-focus {
+  border-color: var(--primary-light) !important;
+  box-shadow: 0 0 0 1px var(--primary-light) inset !important;
+}
+
+/* 表格样式 */
+.el-table {
+  border-radius: var(--radius-lg) !important;
+  overflow: hidden !important;
+  box-shadow: var(--shadow-sm) !important;
+  border: 1px solid var(--bg-tertiary) !important;
+}
+
+.el-table th {
+  background-color: var(--bg-tertiary) !important;
+  font-weight: 600 !important;
+  color: var(--text-primary) !important;
+}
+
+.el-table tr:hover {
+  background-color: var(--bg-hover) !important;
+}
+
+.el-table--striped .el-table__body tr.el-table__row--striped td {
+  background-color: var(--bg-tertiary) !important;
+}
+
+/* 菜单样式 */
+.el-menu {
+  border-right: none !important;
+}
+
+.el-menu-item,
+.el-sub-menu__title {
+  border-radius: var(--radius-md) !important;
+  margin: 2px 8px !important;
+  transition: all var(--transition-fast) !important;
+}
+
+.el-menu-item:hover,
+.el-sub-menu__title:hover {
+  background-color: var(--bg-sidebar-hover) !important;
+}
+
+.el-menu-item.is-active {
+  background-color: var(--bg-sidebar-active) !important;
+  color: var(--primary-color) !important;
+  font-weight: 600 !important;
+}
+
+/* 卡片样式 */
+.el-card {
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid var(--bg-tertiary) !important;
+  box-shadow: var(--shadow-md) !important;
+  transition: all var(--transition-base) !important;
+}
+
+.el-card:hover {
+  box-shadow: var(--shadow-hover) !important;
+  border-color: var(--primary-light) !important;
+}
+
+.el-card__header {
+  border-bottom: 1px solid var(--bg-tertiary) !important;
+  background-color: var(--bg-tertiary) !important;
+  padding: var(--space-lg) var(--space-xl) !important;
+  font-weight: 600 !important;
+  color: var(--text-primary) !important;
+}
+
+/* 分页样式 */
+.el-pagination {
+  padding: var(--space-lg) 0 !important;
+}
+
+.el-pagination button,
+.el-pagination .el-pager li {
+  border-radius: var(--radius-md) !important;
+  border: 1px solid var(--bg-tertiary) !important;
+  margin: 0 4px !important;
+}
+
+.el-pagination button:hover,
+.el-pagination .el-pager li:hover {
+  border-color: var(--primary-light) !important;
+  color: var(--primary-color) !important;
+}
+
+.el-pagination .el-pager li.is-active {
+  background-color: var(--primary-color) !important;
+  color: white !important;
+  border-color: var(--primary-color) !important;
+}
+
+/* 标签页样式 */
+.el-tabs {
+  background: var(--bg-primary) !important;
+  border-radius: var(--radius-lg) !important;
+  padding: var(--space-md) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.el-tabs__header {
+  margin-bottom: var(--space-lg) !important;
+}
+
+.el-tabs__item {
+  border-radius: var(--radius-md) !important;
+  margin-right: var(--space-sm) !important;
+  transition: all var(--transition-fast) !important;
+}
+
+.el-tabs__item:hover {
+  color: var(--primary-color) !important;
+}
+
+.el-tabs__item.is-active {
+  color: var(--primary-color) !important;
+  font-weight: 600 !important;
+}
+
+.el-tabs__active-bar {
+  background-color: var(--primary-color) !important;
+  height: 3px !important;
+  border-radius: 3px !important;
+}

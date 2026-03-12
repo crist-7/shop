@@ -189,12 +189,32 @@ onMounted(() => {
 }
 
 .info-box {
-  background: var(--bg-primary);
+  /* 玻璃拟态效果 */
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
   border-radius: var(--radius-xl);
   padding: var(--space-3xl);
-  border: 1px solid var(--bg-tertiary);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: var(--shadow-lg),
+              0 8px 32px rgba(139, 92, 246, 0.1),
+              inset 0 1px 0 rgba(255, 255, 255, 0.6);
   height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 玻璃拟态背景叠加层 - 增强视觉效果 */
+.info-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(59, 130, 246, 0.05));
+  border-radius: var(--radius-xl);
+  z-index: -1;
 }
 
 .title {
@@ -278,11 +298,56 @@ onMounted(() => {
   font-weight: 600;
   border-radius: var(--radius-lg);
   transition: all var(--transition-base);
+  background: var(--gradient-primary);
+  border: none;
+  color: white;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+/* 按钮发光效果 */
+.buy-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--gradient-macaroon);
+  opacity: 0;
+  transition: opacity var(--transition-base);
+  z-index: -1;
 }
 
 .buy-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-primary-glow);
+}
+
+.buy-btn:hover::before {
+  opacity: 1;
+}
+
+/* 立即购买按钮样式 - 使用渐变背景 */
+.actions .el-button--danger {
+  background: var(--gradient-candy);
+  border: none;
+  color: white;
+  min-width: 180px;
+  height: 56px;
+  font-size: 18px;
+  font-weight: 600;
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-base);
+  position: relative;
+  overflow: hidden;
+}
+
+.actions .el-button--danger:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-primary-glow);
+  color: white;
 }
 
 /* 响应式调整 */
@@ -314,6 +379,21 @@ onMounted(() => {
 
   .simple-header .inner {
     padding: 0 var(--space-lg);
+  }
+}
+
+/* 深色模式下的玻璃拟态调整 */
+@media (prefers-color-scheme: dark) {
+  .info-box {
+    background: rgba(30, 27, 75, 0.7); /* 深紫色半透明背景 */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: var(--shadow-lg),
+                0 8px 32px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  .info-box::before {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(59, 130, 246, 0.1));
   }
 }
 

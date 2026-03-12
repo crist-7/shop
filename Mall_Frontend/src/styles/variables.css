@@ -1,46 +1,60 @@
-/* 2026年现代企业级配色方案 */
+/* 2026年年轻化电商配色方案 - 马卡龙色系 + 柔和渐变 */
 
-/* 主色调 - 深蓝色系 */
+/* 主色调 - 柔和蓝紫色系 */
 :root {
-  /* 品牌色 - 深蓝色 */
-  --primary-color: #1e3a8a;
-  --primary-light: #3b82f6;
-  --primary-lighter: #60a5fa;
-  --primary-dark: #1e40af;
-  --primary-darker: #1e3a8a;
+  /* 品牌色 - 柔和蓝紫色 */
+  --primary-color: #8b5cf6;  /* 柔和的紫罗兰色 */
+  --primary-light: #a78bfa;  /* 更浅的紫罗兰色 */
+  --primary-lighter: #c4b5fd; /* 非常浅的紫罗兰色 */
+  --primary-dark: #7c3aed;   /* 稍深的紫罗兰色 */
+  --primary-darker: #6d28d9; /* 更深的紫罗兰色 */
 
-  /* 辅助色 - 极简白灰色系 */
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8fafc;
-  --bg-tertiary: #f1f5f9;
-  --bg-hover: #e2e8f0;
+  /* 辅助色 - 马卡龙色系 */
+  --bg-primary: #ffffff;      /* 纯白背景 */
+  --bg-secondary: #faf5ff;    /* 非常浅的紫色背景 */
+  --bg-tertiary: #f3e8ff;     /* 浅紫色背景 */
+  --bg-hover: #e9d5ff;        /* 悬停时的浅紫色 */
 
   /* 文本色 */
-  --text-primary: #1e293b;
-  --text-secondary: #475569;
-  --text-tertiary: #94a3b8;
-  --text-disabled: #cbd5e1;
+  --text-primary: #1f2937;    /* 深灰色文本 */
+  --text-secondary: #6b7280;  /* 中灰色文本 */
+  --text-tertiary: #9ca3af;   /* 浅灰色文本 */
+  --text-disabled: #d1d5db;   /* 禁用文本色 */
 
-  /* 功能色 */
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --info: #3b82f6;
+  /* 功能色 - 马卡龙风格 */
+  --success: #10b981;         /* 薄荷绿 */
+  --warning: #f59e0b;         /* 柔和的橙色 */
+  --danger: #ef4444;          /* 柔和的红色 */
+  --info: #3b82f6;            /* 柔和的蓝色 */
 
-  /* 渐变色 */
-  --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --gradient-blue: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --gradient-cool: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  /* 渐变色 - 年轻化多彩渐变 */
+  --gradient-primary: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%); /* 紫到蓝 */
+  --gradient-blue: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);    /* 浅蓝到蓝 */
+  --gradient-cool: linear-gradient(135deg, #f0abfc 0%, #c4b5fd 100%);    /* 粉紫渐变 */
+  --gradient-macaroon: linear-gradient(135deg, #a78bfa 0%, #f0abfc 100%); /* 马卡龙紫粉渐变 */
+  --gradient-sunset: linear-gradient(135deg, #fbbf24 0%, #f472b6 100%);  /* 日落橙粉渐变 */
+  --gradient-ocean: linear-gradient(135deg, #34d399 0%, #3b82f6 100%);   /* 海洋绿蓝渐变 */
+  --gradient-candy: linear-gradient(135deg, #f87171 0%, #fb923c 100%);   /* 糖果红橙渐变 */
 
-  /* 阴影 - 现代悬浮效果 */
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  /* 阴影 - 柔和悬浮效果 */
+  --shadow-xs: 0 1px 2px 0 rgba(139, 92, 246, 0.05);  /* 带紫色调的阴影 */
+  --shadow-sm: 0 2px 4px 0 rgba(139, 92, 246, 0.08), 0 1px 3px 0 rgba(139, 92, 246, 0.06);
+  --shadow-md: 0 4px 8px -2px rgba(139, 92, 246, 0.1), 0 2px 6px -1px rgba(139, 92, 246, 0.08);
+  --shadow-lg: 0 10px 20px -3px rgba(139, 92, 246, 0.12), 0 4px 8px -2px rgba(139, 92, 246, 0.1);
+  --shadow-xl: 0 20px 30px -5px rgba(139, 92, 246, 0.15), 0 10px 15px -5px rgba(139, 92, 246, 0.12);
+
+  /* 彩色弥散阴影 - 用于悬停效果 */
+  --shadow-primary-glow: 0 10px 25px -3px rgba(139, 92, 246, 0.25), 0 4px 10px -2px rgba(139, 92, 246, 0.2);
+  --shadow-blue-glow: 0 10px 25px -3px rgba(59, 130, 246, 0.25), 0 4px 10px -2px rgba(59, 130, 246, 0.2);
+  --shadow-pink-glow: 0 10px 25px -3px rgba(240, 171, 252, 0.25), 0 4px 10px -2px rgba(240, 171, 252, 0.2);
+  --shadow-multi-glow: 0 15px 30px -5px rgba(139, 92, 246, 0.3), 0 8px 15px -5px rgba(59, 130, 246, 0.25), 0 4px 8px -3px rgba(240, 171, 252, 0.2);
 
   /* 悬停阴影增强 */
-  --shadow-hover: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+  --shadow-hover: 0 20px 40px -10px rgba(139, 92, 246, 0.25), 0 10px 20px -5px rgba(139, 92, 246, 0.2);
+
+  /* 发光效果 - 用于轮播图等 */
+  --glow-primary: 0 0 20px rgba(139, 92, 246, 0.4);
+  --glow-soft: 0 0 30px rgba(139, 92, 246, 0.15);
 
   /* 圆角 - 现代设计 */
   --radius-sm: 6px;
@@ -50,16 +64,17 @@
   --radius-2xl: 24px;
   --radius-full: 9999px;
 
-  /* 间距 - 增加呼吸感 */
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 12px;
-  --space-lg: 16px;
-  --space-xl: 20px;
-  --space-2xl: 24px;
-  --space-3xl: 32px;
-  --space-4xl: 40px;
-  --space-5xl: 48px;
+  /* 间距 - 增加呼吸感（加大留白） */
+  --space-xs: 6px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 40px;
+  --space-3xl: 48px;
+  --space-4xl: 64px;
+  --space-5xl: 80px;
+  --space-6xl: 96px;
 
   /* 过渡动画 */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -74,28 +89,28 @@
   --container-2xl: 1536px;
 }
 
-/* 覆盖 Element Plus 默认样式 */
+/* 覆盖 Element Plus 默认样式 - 匹配马卡龙主题 */
 :root {
   --el-color-primary: var(--primary-color);
   --el-color-primary-light-3: var(--primary-lighter);
   --el-color-primary-light-5: var(--primary-light);
   --el-color-primary-light-7: var(--primary-lighter);
-  --el-color-primary-light-8: #93c5fd;
-  --el-color-primary-light-9: #dbeafe;
+  --el-color-primary-light-8: #ddd6fe;  /* 更浅的紫色 */
+  --el-color-primary-light-9: #f3e8ff;  /* 非常浅的紫色 */
   --el-color-primary-dark-2: var(--primary-dark);
 }
 
-/* 深色模式支持 */
+/* 深色模式支持 - 深紫色系 */
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg-primary: #0f172a;
-    --bg-secondary: #1e293b;
-    --bg-tertiary: #334155;
-    --bg-hover: #475569;
+    --bg-primary: #1e1b4b;      /* 深紫色背景 */
+    --bg-secondary: #2e1065;    /* 稍浅的深紫色 */
+    --bg-tertiary: #4c1d95;     /* 中等深紫色 */
+    --bg-hover: #5b21b6;        /* 悬停紫色 */
 
-    --text-primary: #f1f5f9;
-    --text-secondary: #e2e8f0;
-    --text-tertiary: #94a3b8;
-    --text-disabled: #64748b;
+    --text-primary: #f1f5f9;    /* 浅色文本 */
+    --text-secondary: #e2e8f0;  /* 稍深的浅色文本 */
+    --text-tertiary: #94a3b8;   /* 浅灰色文本 */
+    --text-disabled: #64748b;   /* 禁用文本色 */
   }
 }

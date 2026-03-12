@@ -3,33 +3,33 @@
     <!-- 顶部数据卡片 -->
     <el-row :gutter="20">
       <el-col :span="6">
-        <el-card shadow="hover" class="data-card" body-style="padding: 20px">
+        <el-card shadow="hover" class="data-card sales-card" body-style="padding: 20px">
           <div class="card-title">总销售额</div>
-          <div class="num" style="color: #f56c6c;">¥ 126,560.00</div>
+          <div class="num">¥ 126,560.00</div>
         </el-card>
       </el-col>
       <el-col :span="6">
-        <el-card shadow="hover" class="data-card" body-style="padding: 20px">
+        <el-card shadow="hover" class="data-card orders-card" body-style="padding: 20px">
           <div class="card-title">订单总量</div>
-          <div class="num" style="color: #409EFF;">8,846</div>
+          <div class="num">8,846</div>
         </el-card>
       </el-col>
       <el-col :span="6">
-        <el-card shadow="hover" class="data-card" body-style="padding: 20px">
+        <el-card shadow="hover" class="data-card visits-card" body-style="padding: 20px">
           <div class="card-title">今日访问</div>
-          <div class="num" style="color: #67c23a;">1,203</div>
+          <div class="num">1,203</div>
         </el-card>
       </el-col>
       <el-col :span="6">
-        <el-card shadow="hover" class="data-card" body-style="padding: 20px">
+        <el-card shadow="hover" class="data-card users-card" body-style="padding: 20px">
           <div class="card-title">新增用户</div>
-          <div class="num" style="color: #e6a23c;">235</div>
+          <div class="num">235</div>
         </el-card>
       </el-col>
     </el-row>
 
     <!-- ECharts 数据趋势图 -->
-    <el-card class="chart-card" shadow="hover" style="margin-top: 20px">
+    <el-card class="chart-card" shadow="hover">
       <template #header>
         <div style="font-weight: bold; font-size: 16px;">
           <el-icon style="margin-right: 8px; vertical-align: middle;"><TrendCharts /></el-icon>
@@ -149,16 +149,64 @@ onUnmounted(() => {
 
 <style scoped>
 .dashboard-container {
-  padding: 10px;
+  padding: var(--space-xl);
 }
 .card-title {
-  font-size: 14px;
-  color: #909399;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.9);
   margin-bottom: 15px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
 }
 .num {
-  font-size: 32px;
+  font-size: 42px;
   font-weight: 900;
   font-family: 'Helvetica Neue', Arial, sans-serif;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 数据卡片渐变色样式 */
+.data-card {
+  border: none !important;
+  border-radius: var(--radius-xl) !important;
+  overflow: hidden;
+  transition: all var(--transition-base) !important;
+}
+
+.data-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-xl) !important;
+}
+
+.sales-card {
+  background: var(--gradient-sales) !important;
+}
+
+.orders-card {
+  background: var(--gradient-orders) !important;
+}
+
+.visits-card {
+  background: var(--gradient-visits) !important;
+}
+
+.users-card {
+  background: var(--gradient-users) !important;
+}
+
+/* 图表卡片样式 */
+.chart-card {
+  border-radius: var(--radius-xl) !important;
+  margin-top: var(--space-xl) !important;
+  border: 1px solid var(--bg-tertiary);
+}
+
+.chart-card :deep(.el-card__header) {
+  background-color: var(--bg-tertiary) !important;
+  border-bottom: 1px solid var(--bg-tertiary) !important;
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--text-primary);
 }
 </style>

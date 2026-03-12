@@ -2,14 +2,14 @@
   <el-container class="layout-container">
     <el-aside :width="isCollapse ? '64px' : '220px'" class="aside">
       <div class="logo">
-        <el-icon color="#409EFF" size="24"><Shop /></el-icon>
+        <el-icon :color="'var(--primary-color)'" size="24"><Shop /></el-icon>
         <span v-show="!isCollapse" class="logo-text">星辰商城后台</span>
       </div>
 
       <el-menu
-        active-text-color="#409EFF"
-        background-color="#304156"
-        text-color="#bfcbd9"
+        active-text-color="var(--primary-color)"
+        background-color="var(--bg-sidebar)"
+        text-color="var(--text-primary)"
         :default-active="$route.path"
         :collapse="isCollapse"
         router
@@ -118,24 +118,26 @@ const handleLogout = () => {
 }
 
 .aside {
-  background-color: var(--primary-darker);
+  background-color: var(--bg-sidebar);
   transition: width 0.3s;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   box-shadow: var(--shadow-md);
+  border-right: 1px solid var(--bg-tertiary);
 }
 
 .logo {
-  height: 50px;
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--text-primary);
   font-weight: bold;
-  background-color: var(--primary-dark);
+  background-color: var(--bg-sidebar);
   white-space: nowrap;
   padding: 0 var(--space-lg);
+  border-bottom: 1px solid var(--bg-tertiary);
 }
 
 .logo-text {
@@ -155,16 +157,22 @@ const handleLogout = () => {
 :deep(.el-menu-item),
 :deep(.el-sub-menu__title) {
   color: var(--text-primary) !important;
+  border-radius: var(--radius-md);
+  margin: var(--space-xs) var(--space-sm);
+  transition: all var(--transition-fast);
 }
 
 :deep(.el-menu-item:hover),
 :deep(.el-sub-menu__title:hover) {
-  background-color: rgba(255, 255, 255, 0.1) !important;
+  background-color: var(--bg-sidebar-hover) !important;
 }
 
 :deep(.el-menu-item.is-active) {
-  background-color: var(--primary-color) !important;
-  color: white !important;
+  background-color: var(--bg-sidebar-active) !important;
+  color: var(--primary-color) !important;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  margin: var(--space-xs) var(--space-sm);
 }
 
 .header {
@@ -208,7 +216,7 @@ const handleLogout = () => {
 
 .main {
   background-color: var(--bg-secondary);
-  padding: var(--space-xl);
+  padding: var(--space-2xl);
 }
 
 /* 页面切换动画 */

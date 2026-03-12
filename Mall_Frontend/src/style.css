@@ -73,3 +73,83 @@ button {
   box-shadow: var(--shadow-hover);
   border-color: var(--primary-light);
 }
+
+/* 9. 全局留白增强 - 增加页面呼吸感 */
+.container {
+  width: 100%;
+  max-width: var(--container-xl);
+  margin: 0 auto;
+  padding: 0 var(--space-xl);
+}
+
+/* 标题间距 */
+h1, h2, h3, h4, h5, h6 {
+  margin-top: 0;
+  margin-bottom: var(--space-lg);
+  line-height: 1.3;
+}
+
+/* 段落和文本间距 */
+p {
+  margin-bottom: var(--space-lg);
+  line-height: 1.6;
+}
+
+/* 表单元素间距增强 */
+.el-form-item {
+  margin-bottom: var(--space-xl);
+}
+
+.el-form-item__label {
+  padding-bottom: var(--space-xs);
+}
+
+/* 卡片内容间距 - 增强默认留白 */
+.el-card:not([class*="goods-card"]) .el-card__body {
+  padding: var(--space-xl);
+}
+
+/* 按钮间距 */
+.el-button + .el-button {
+  margin-left: var(--space-md);
+}
+
+/* 列表间距 */
+ul, ol {
+  margin-bottom: var(--space-lg);
+  padding-left: var(--space-xl);
+}
+
+li {
+  margin-bottom: var(--space-sm);
+}
+
+/* 表格间距 */
+.el-table {
+  margin-bottom: var(--space-xl);
+}
+
+/* 分页器间距 */
+.el-pagination {
+  margin-top: var(--space-xl);
+  padding: var(--space-lg) 0;
+}
+
+/* 响应式间距调整 */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 var(--space-lg);
+  }
+
+  .el-form-item {
+    margin-bottom: var(--space-lg);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    margin-bottom: var(--space-md);
+  }
+
+  p {
+    margin-bottom: var(--space-md);
+  }
+}
