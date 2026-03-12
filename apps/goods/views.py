@@ -1,4 +1,5 @@
-from rest_framework import mixins, viewsets, filters
+from rest_framework import mixins, viewsets, filters, permissions, status
+from rest_framework.permissions import IsAuthenticated
 from .permissions import IsAdminUserOrReadOnly
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.pagination import PageNumberPagination
@@ -7,7 +8,6 @@ from .models import Product, Category, Banner
 from .serializers import ProductSerializer, CategorySerializer, BannerSerializer
 from .filters import ProductFilter
 from rest_framework.views import APIView
-from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser
 from django.core.files.storage import default_storage
@@ -15,33 +15,6 @@ from django.core.files.base import ContentFile
 from django.conf import settings
 import os
 import uuid
-from rest_framework import mixins, viewsets, filters
-from django_filters.rest_framework import DjangoFilterBackend
-from .models import Product, Category, Banner
-from .serializers import ProductSerializer, CategorySerializer, BannerSerializer
-from .filters import ProductFilter
-from .permissions import IsAdminUserOrReadOnly
-
-class ProductViewSet(viewsets.ModelViewSet):
-    """
-    商品列表页：使用 select_related 优化分类外键查询
-    """
-    # 优化点：一次性预加载 category 信息，避免序列化时重复查询数据库
-    queryset = Product.objects.filter(is_delete=False).select_related('category').order_by('id')
-    serializer_class = ProductSerializer
-    permission_classes = (IsAdminUserOrReadOnly,)
-    filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
-    filterset_class = ProductFilter
-    search_fields = ('name', 'goods_brief')
-    ordering_fields = ('sold_num', 'shop_price')
-
-    def destroy(self, request, *args, **kwargs):
-        """重写删除方法实现逻辑删除"""
-        instance = self.get_object()
-        instance.is_delete = True
-        instance.save()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
 
 class GoodsPagination(PageNumberPagination):
     """自定义分页配置"""
@@ -54,8 +27,10 @@ class GoodsPagination(PageNumberPagination):
 class ProductViewSet(viewsets.ModelViewSet):
     """
     商品列表页, 分页, 搜索, 过滤, 排序
+    使用 select_related 优化分类外键查询，解决 N+1 问题
     """
-    queryset = Product.objects.all().order_by('id')  # 默认排序
+    # 优化点：一次性预加载 category 信息，避免序列化时重复查询数据库
+    queryset = Product.objects.filter(is_delete=False).select_related('category').order_by('id')
     serializer_class = ProductSerializer
     pagination_class = GoodsPagination
 
@@ -73,11 +48,20 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     # 指定排序字段 (允许前端按销量、价格排序)
     ordering_fields = ('sold_num', 'shop_price')
+
+    def destroy(self, request, *args, **kwargs):
+        """重写删除方法实现逻辑删除"""
+        instance = self.get_object()
+        instance.is_delete = True
+        instance.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 class CategoryViewSet(viewsets.ModelViewSet):
     """
     商品分类管理 (增删改查)
+    使用 select_related 优化父级分类查询，解决 N+1 问题
     """
-    queryset = Category.objects.filter(is_delete=False).order_by('id')
+    # 优化点：预加载父级分类，避免在显示分类层级时产生 N+1 查询
+    queryset = Category.objects.filter(is_delete=False).select_related('parent_category').order_by('id')
     serializer_class = CategorySerializer
     # 【安全升级】：替换 AllowAny
     permission_classes = (IsAdminUserOrReadOnly,)
@@ -93,22 +77,41 @@ class CategoryViewSet(viewsets.ModelViewSet):
 class BannerViewSet(viewsets.ModelViewSet):
     """
     获取首页轮播图
+    使用 select_related 优化商品信息查询
     """
-    queryset = Banner.objects.all().order_by('index')
+    # 优化点：预加载关联的商品信息，避免在显示轮播图时产生额外查询
+    queryset = Banner.objects.select_related('goods').order_by('index')
     serializer_class = BannerSerializer
     permission_classes = (IsAdminUserOrReadOnly,) # 游客只能看，管理员能改
 # 【新增】独立的文件上传接口
 class ImageUploadView(APIView):
     # 允许解析 multipart/form-data 格式（文件上传标准格式）
     parser_classes = (MultiPartParser,)
+    # 文件上传需要认证
+    permission_classes = (IsAuthenticated,)
 
     def post(self, request, format=None):
         file_obj = request.FILES.get('file') # 获取前端传来的 file 字段
         if not file_obj:
             return Response({'error': '请选择文件'}, status=400)
 
+        # 安全检查：验证文件类型
+        allowed_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+        ext = os.path.splitext(file_obj.name)[1].lower()
+        if ext not in allowed_extensions:
+            return Response({'error': '只支持以下图片格式：jpg, jpeg, png, gif, webp'}, status=400)
+
+        # 安全检查：验证文件大小（限制为 5MB）
+        max_size = 5 * 1024 * 1024  # 5MB
+        if file_obj.size > max_size:
+            return Response({'error': '文件大小不能超过 5MB'}, status=400)
+
+        # 安全检查：验证文件内容
+        allowed_mime_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+        if file_obj.content_type not in allowed_mime_types:
+            return Response({'error': '不支持的文件类型'}, status=400)
+
         # 1. 生成随机文件名，防止重名覆盖
-        ext = os.path.splitext(file_obj.name)[1]
         file_name = f"uploads/{uuid.uuid4()}{ext}"
 
         # 2. 保存文件到 MEDIA_ROOT

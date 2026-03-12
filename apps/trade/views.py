@@ -14,25 +14,6 @@ from .models import OrderInfo, ShoppingCart
 from .serializers import OrderSerializer, OrderDetailSerializer, ShoppingCartDetailSerializer
 from .tasks import close_order_task  # 导入异步任务
 
-class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin,
-                   mixins.CreateModelMixin, mixins.DestroyModelMixin,
-                   viewsets.GenericViewSet):
-    """
-    订单管理：使用 prefetch_related 优化订单商品详情查询
-    """
-    permission_classes = (IsAuthenticated,)
-    authentication_classes = (JWTAuthentication,)
-
-    def get_queryset(self):
-        # 优化点：预加载关联的 goods (OrderGoods)，解决订单列表展示时的 N+1 问题
-        return OrderInfo.objects.filter(user=self.request.user).prefetch_related('goods')
-
-    def perform_create(self, serializer):
-        order = serializer.save()
-        # 【异步任务应用】：下单后开启一个 30 分钟后执行的延时任务，检查支付状态
-        # 如果 30 分钟后未支付，close_order_task 将自动关闭该订单
-        close_order_task.apply_async((order.id,), countdown=30 * 60)
-        return order
 class ShoppingCartViewSet(viewsets.ModelViewSet):
     """
     购物车功能
@@ -47,8 +28,9 @@ class ShoppingCartViewSet(viewsets.ModelViewSet):
     pagination_class = None
 
     def get_queryset(self):
-        # 正确逻辑：只能查询当前登录用户的购物车记录
-        return ShoppingCart.objects.filter(user=self.request.user).order_by('-add_time')
+        # 优化点：预加载关联的 goods，解决购物车列表展示时的 N+1 问题
+        # 过滤逻辑删除的商品：只显示未被逻辑删除的商品
+        return ShoppingCart.objects.filter(user=self.request.user, goods__is_delete=False).select_related('goods').order_by('-add_time')
 
     def get_serializer_class(self):
         """
@@ -64,7 +46,7 @@ class ShoppingCartViewSet(viewsets.ModelViewSet):
 class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.CreateModelMixin, mixins.DestroyModelMixin,
                    viewsets.GenericViewSet):
     """
-    订单管理
+    订单管理：使用 prefetch_related 优化订单商品详情查询
     list: 获取个人订单列表
     create: 新增订单 (结算购物车)
     delete: 删除订单
@@ -73,8 +55,14 @@ class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
     authentication_classes = (JWTAuthentication,)
 
     def get_queryset(self):
-        # 只能查看自己的订单
-        return OrderInfo.objects.filter(user=self.request.user)
+        # 优化点：使用 Prefetch 对象进行更细粒度的预加载控制
+        # 预加载关联的 OrderGoods，以及 OrderGoods 中关联的 Product
+        from django.db.models import Prefetch
+        from .models import OrderGoods
+
+        return OrderInfo.objects.filter(user=self.request.user).prefetch_related(
+            Prefetch('goods', queryset=OrderGoods.objects.select_related('goods'))
+        )
 
     def get_serializer_class(self):
         # 动态选择序列化器
@@ -95,12 +83,17 @@ class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
         # 2. 先保存订单初步信息 (前端传过来的地址等)
         order = serializer.save(order_sn=order_sn)
 
-        # 3. 获取该用户的购物车数据
-        shop_carts = ShoppingCart.objects.filter(user=user)
+        # 3. 获取该用户的购物车数据（优化：使用 select_related 预加载商品信息）
+        # 过滤掉已逻辑删除的商品
+        shop_carts = ShoppingCart.objects.filter(user=user, goods__is_delete=False).select_related('goods')
         order_mount = 0.0
 
         # 4. 遍历购物车，把商品转移到订单商品表中
         for cart in shop_carts:
+            # 再次检查商品是否已被逻辑删除（防止并发问题）
+            if cart.goods.is_delete:
+                continue
+
             OrderGoods.objects.create(
                 order=order,
                 goods=cart.goods,
@@ -116,3 +109,7 @@ class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
 
         # 6. 【重中之重】清空购物车！
         shop_carts.delete()
+
+        # 7. 【异步任务应用】：下单后开启一个 30 分钟后执行的延时任务，检查支付状态
+        # 如果 30 分钟后未支付，close_order_task 将自动关闭该订单
+        close_order_task.apply_async((order.id,), countdown=30 * 60)

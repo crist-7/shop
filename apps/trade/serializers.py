@@ -30,6 +30,10 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
         nums = validated_data["nums"]
         goods = validated_data["goods"]
 
+        # 检查商品是否已被逻辑删除
+        if goods.is_delete:
+            raise serializers.ValidationError("该商品已下架，无法加入购物车")
+
         # 去数据库里找找看，这个用户是不是已经加过这个商品了
         existed = ShoppingCart.objects.filter(user=user, goods=goods)
 

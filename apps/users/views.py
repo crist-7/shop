@@ -1,5 +1,5 @@
 from rest_framework import viewsets, status
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -11,9 +11,15 @@ User = get_user_model()
 class UserViewSet(viewsets.ModelViewSet):
     """
     用户管理
+    注册接口允许匿名访问，其他接口需要认证
     """
     queryset = User.objects.all().order_by('-date_joined')
-    permission_classes = (AllowAny,)
+
+    def get_permissions(self):
+        # 注册接口允许匿名访问，其他接口需要认证
+        if self.action == 'create':
+            return (AllowAny(),)
+        return (IsAuthenticated(),)
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -34,3 +40,10 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         return serializer.save()
+
+    def get_queryset(self):
+        # 用户只能查看自己的信息，管理员可以查看所有用户
+        user = self.request.user
+        if user.is_staff:
+            return User.objects.all().order_by('-date_joined')
+        return User.objects.filter(id=user.id).order_by('-date_joined')

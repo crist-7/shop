@@ -94,28 +94,40 @@
         <h2 class="section-title">✨ 热卖推荐</h2>
       </div>
 
-      <div class="goods-list" v-loading="loading">
-        <el-card
-          v-for="item in goodsList"
-          :key="item.id"
-          class="goods-card"
-          shadow="hover"
-          :body-style="{ padding: '0px' }"
-          @click="router.push(`/goods/${item.id}`)"
-          style="cursor: pointer"
-        >
-          <div class="image-wrapper">
-            <img v-if="item.goods_front_image" :src="item.goods_front_image" class="image"/>
-            <div v-else class="image-placeholder">暂无图片</div>
-          </div>
-          <div class="card-content">
-            <h3 class="goods-name">{{ item.name }}</h3>
-            <div class="bottom-action">
-              <span class="price-num">¥ {{ item.shop_price }}</span>
-              <el-button type="primary" size="small" @click.stop="addToCart(item)">加入购物车</el-button>
+      <div class="goods-list">
+        <template v-if="loading">
+          <Skeleton
+            v-for="i in 8"
+            :key="i"
+            type="product"
+            :showImage="true"
+            :lines="2"
+            class="goods-card-skeleton"
+          />
+        </template>
+        <template v-else>
+          <el-card
+            v-for="item in goodsList"
+            :key="item.id"
+            class="goods-card"
+            shadow="hover"
+            :body-style="{ padding: '0px' }"
+            @click="router.push(`/goods/${item.id}`)"
+            style="cursor: pointer"
+          >
+            <div class="image-wrapper">
+              <img v-if="item.goods_front_image" :src="item.goods_front_image" class="image"/>
+              <div v-else class="image-placeholder">暂无图片</div>
             </div>
-          </div>
-        </el-card>
+            <div class="card-content">
+              <h3 class="goods-name">{{ item.name }}</h3>
+              <div class="bottom-action">
+                <span class="price-num">¥ {{ item.shop_price }}</span>
+                <el-button type="primary" size="small" @click.stop="addToCart(item)">加入购物车</el-button>
+              </div>
+            </div>
+          </el-card>
+        </template>
       </div>
     </main>
 
@@ -132,6 +144,7 @@ import { useUserStore } from '../store/user';
 import { useCartStore } from '../store/cart';
 import { getGoodsList, getCategoryList, getBannerList } from '../api/goods'; // 确保路径正确
 import CartDrawer from './CartDrawer.vue';
+import Skeleton from './Skeleton.vue';
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -203,25 +216,114 @@ onMounted(() => {
 
 <style scoped>
 /* 简化的核心样式，防止布局错乱 */
-.mall-layout { background-color: #f4f4f4; min-height: 100vh; }
-.mall-header { background: #fff; border-bottom: 2px solid #409EFF; padding: 0 20px; }
-.header-inner { max-width: 1200px; margin: 0 auto; height: 80px; display: flex; align-items: center; justify-content: space-between; }
-.logo { font-size: 24px; font-weight: bold; color: #409EFF; display: flex; align-items: center; gap: 10px; }
-.search-bar { flex: 1; max-width: 500px; margin: 0 40px; }
-.category-nav { background: #fff; border-bottom: 1px solid #ddd; }
-.nav-inner { max-width: 1200px; margin: 0 auto; display: flex; gap: 30px; }
-.nav-item { line-height: 50px; cursor: pointer; padding: 0 10px; font-size: 16px; }
-.nav-item.active { color: #409EFF; border-bottom: 3px solid #409EFF; font-weight: bold; }
-.banner-section { max-width: 1200px; margin: 20px auto; }
-.banner-content { height: 100%; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-.main-content { max-width: 1200px; margin: 0 auto; padding-bottom: 40px; }
-.goods-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; margin-top: 20px; }
-.goods-card { overflow: hidden; }
-.image-wrapper { height: 220px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-.image { width: 100%; height: 100%; object-fit: contain; }
-.card-content { padding: 10px; }
-.bottom-action { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
-.price-num { color: #f56c6c; font-size: 18px; font-weight: bold; }
-.footer-links { display: flex; justify-content: space-around; padding: 40px 0; background: #333; color: #999; }
-.footer-copyright { text-align: center; padding: 20px; background: #333; color: #666; border-top: 1px solid #444; }
+.mall-layout { background-color: var(--bg-secondary); min-height: 100vh; }
+.mall-header { background: var(--bg-primary); border-bottom: 2px solid var(--primary-color); padding: 0 var(--space-xl); box-shadow: var(--shadow-sm); }
+.header-inner { max-width: var(--container-xl); margin: 0 auto; height: 80px; display: flex; align-items: center; justify-content: space-between; }
+.logo { font-size: 24px; font-weight: bold; color: var(--primary-color); display: flex; align-items: center; gap: var(--space-sm); transition: color var(--transition-fast); }
+.logo:hover { color: var(--primary-light); }
+.search-bar { flex: 1; max-width: 500px; margin: 0 var(--space-4xl); }
+.category-nav { background: var(--bg-primary); border-bottom: 1px solid var(--bg-tertiary); box-shadow: var(--shadow-xs); }
+.nav-inner { max-width: var(--container-xl); margin: 0 auto; display: flex; gap: var(--space-2xl); padding: 0 var(--space-xl); }
+.nav-item { line-height: 50px; cursor: pointer; padding: 0 var(--space-md); font-size: 16px; color: var(--text-secondary); transition: all var(--transition-fast); }
+.nav-item:hover { color: var(--primary-color); }
+.nav-item.active { color: var(--primary-color); border-bottom: 3px solid var(--primary-color); font-weight: bold; background: var(--bg-hover); border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+.banner-section { max-width: var(--container-xl); margin: var(--space-xl) auto; }
+.banner-content { height: 100%; border-radius: var(--radius-lg); overflow: hidden; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-md); transition: box-shadow var(--transition-base); }
+.banner-content:hover { box-shadow: var(--shadow-hover); }
+.main-content { max-width: var(--container-xl); margin: 0 auto; padding-bottom: var(--space-4xl); padding-top: var(--space-xl); }
+.goods-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--space-xl); margin-top: var(--space-xl); }
+.goods-card {
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--bg-tertiary);
+  background: var(--bg-primary);
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-base);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.goods-card:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-8px);
+  border-color: var(--primary-light);
+}
+
+.image-wrapper {
+  height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--bg-secondary);
+  position: relative;
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: transform var(--transition-base);
+  padding: var(--space-md);
+}
+
+.goods-card:hover .image {
+  transform: scale(1.05);
+}
+
+.card-content {
+  padding: var(--space-xl);
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.goods-name {
+  font-size: 16px;
+  color: var(--text-primary);
+  margin-bottom: var(--space-md);
+  line-height: 1.4;
+  font-weight: 600;
+  flex-grow: 1;
+}
+
+.bottom-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--space-lg);
+}
+
+.price-num {
+  color: var(--danger);
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.price-num::before {
+  content: '¥ ';
+  font-size: 16px;
+}
+
+/* 按钮微动效 */
+.el-button {
+  transition: all var(--transition-fast) !important;
+}
+
+.el-button:active {
+  transform: scale(0.98);
+}
+
+.el-button--primary:hover {
+  box-shadow: 0 4px 12px rgba(var(--primary-color-rgb, 59, 130, 246), 0.3);
+}
+.footer-links { display: flex; justify-content: space-around; padding: var(--space-4xl) 0; background: var(--bg-tertiary); color: var(--text-secondary); }
+.footer-copyright { text-align: center; padding: var(--space-xl); background: var(--bg-tertiary); color: var(--text-tertiary); border-top: 1px solid var(--bg-hover); }
+
+.goods-card-skeleton {
+  height: 340px;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
 </style>

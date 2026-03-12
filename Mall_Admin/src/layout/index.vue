@@ -118,11 +118,12 @@ const handleLogout = () => {
 }
 
 .aside {
-  background-color: #304156;
+  background-color: var(--primary-darker);
   transition: width 0.3s;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  box-shadow: var(--shadow-md);
 }
 
 .logo {
@@ -132,51 +133,82 @@ const handleLogout = () => {
   justify-content: center;
   color: #fff;
   font-weight: bold;
-  background-color: #2b2f3a;
+  background-color: var(--primary-dark);
   white-space: nowrap;
+  padding: 0 var(--space-lg);
 }
 
 .logo-text {
-  margin-left: 10px;
+  margin-left: var(--space-sm);
   font-size: 16px;
 }
 
 .el-menu-vertical {
   border-right: none;
+  background-color: transparent;
+}
+
+:deep(.el-menu) {
+  background-color: transparent !important;
+}
+
+:deep(.el-menu-item),
+:deep(.el-sub-menu__title) {
+  color: var(--text-primary) !important;
+}
+
+:deep(.el-menu-item:hover),
+:deep(.el-sub-menu__title:hover) {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+:deep(.el-menu-item.is-active) {
+  background-color: var(--primary-color) !important;
+  color: white !important;
 }
 
 .header {
-  background-color: #fff;
-  border-bottom: 1px solid #dcdfe6;
+  background-color: var(--bg-primary);
+  border-bottom: 1px solid var(--bg-tertiary);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
-  box-shadow: 0 1px 4px rgba(0,21,41,.08);
+  padding: 0 var(--space-xl);
+  box-shadow: var(--shadow-sm);
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: var(--space-lg);
 }
 
 .collapse-btn {
   font-size: 20px;
   cursor: pointer;
-  color: #555;
+  color: var(--text-secondary);
+  transition: color var(--transition-fast);
+}
+
+.collapse-btn:hover {
+  color: var(--primary-color);
 }
 
 .user-info {
   display: flex;
   align-items: center;
   cursor: pointer;
-  color: #333;
+  color: var(--text-primary);
+  transition: color var(--transition-fast);
+}
+
+.user-info:hover {
+  color: var(--primary-color);
 }
 
 .main {
-  background-color: #f0f2f5;
-  padding: 20px;
+  background-color: var(--bg-secondary);
+  padding: var(--space-xl);
 }
 
 /* 页面切换动画 */
@@ -188,5 +220,20 @@ const handleLogout = () => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .aside {
+    width: 64px !important;
+  }
+
+  .logo-text {
+    display: none;
+  }
+
+  .header {
+    padding: 0 var(--space-lg);
+  }
 }
 </style>

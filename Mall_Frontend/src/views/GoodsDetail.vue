@@ -8,50 +8,55 @@
       </div>
     </header>
 
-    <div class="detail-container" v-if="goodsInfo">
-      <div class="gallery">
-        <img :src="goodsInfo.goods_front_image" class="main-img" />
-      </div>
+    <div class="goods-detail-container" v-if="goodsInfo">
+      <el-row :gutter="[40, 40]" class="detail-row">
+        <el-col :xs="24" :md="12" class="gallery-col">
+          <div class="gallery">
+            <img :src="goodsInfo.goods_front_image" class="main-img" />
+          </div>
+        </el-col>
+        <el-col :xs="24" :md="12" class="info-col">
+          <div class="info-box">
+            <h1 class="title">{{ goodsInfo.name }}</h1>
+            <p class="desc">{{ goodsInfo.goods_brief }}</p>
 
-      <div class="info-box">
-        <h1 class="title">{{ goodsInfo.name }}</h1>
-        <p class="desc">{{ goodsInfo.goods_brief }}</p>
+            <div class="price-row">
+              <span class="symbol">¥</span>
+              <span class="num">{{ goodsInfo.shop_price }}</span>
+              <span class="market-price">原价 ¥{{ goodsInfo.market_price }}</span>
+            </div>
 
-        <div class="price-row">
-          <span class="symbol">¥</span>
-          <span class="num">{{ goodsInfo.shop_price }}</span>
-          <span class="market-price">原价 ¥{{ goodsInfo.market_price }}</span>
-        </div>
+            <div class="meta-row">
+              <span class="label">销量</span>
+              <span class="value">{{ goodsInfo.sold_num }} 件</span>
+              <span class="label">库存</span>
+              <span class="value">{{ goodsInfo.goods_num }} 件</span>
+            </div>
 
-        <div class="meta-row">
-          <span class="label">销量</span>
-          <span class="value">{{ goodsInfo.sold_num }} 件</span>
-          <span class="label" style="margin-left: 20px;">库存</span>
-          <span class="value">{{ goodsInfo.goods_num }} 件</span>
-        </div>
+            <div class="sku-selector">
+              <span class="label">规格</span>
+              <el-radio-group v-model="selectedSku" size="large">
+                <el-radio-button label="标准版" />
+                <el-radio-button label="套装版" />
+              </el-radio-group>
+            </div>
 
-        <div class="sku-selector">
-          <span class="label">规格</span>
-          <el-radio-group v-model="selectedSku" size="large">
-            <el-radio-button label="标准版" />
-            <el-radio-button label="套装版" />
-          </el-radio-group>
-        </div>
+            <div class="quantity-selector">
+              <span class="label">数量</span>
+              <el-input-number v-model="buyCount" :min="1" :max="goodsInfo.goods_num" />
+            </div>
 
-        <div class="quantity-selector">
-          <span class="label">数量</span>
-          <el-input-number v-model="buyCount" :min="1" :max="goodsInfo.goods_num" />
-        </div>
-
-        <div class="actions">
-          <el-button type="primary" size="large" class="buy-btn" @click="handleAddToCart">
-            加入购物车
-          </el-button>
-          <el-button type="danger" size="large" plain @click="handleBuyNow">
-            立即购买
-          </el-button>
-        </div>
-      </div>
+            <div class="actions">
+              <el-button type="primary" size="large" class="buy-btn" @click="handleAddToCart">
+                加入购物车
+              </el-button>
+              <el-button type="danger" size="large" plain @click="handleBuyNow">
+                立即购买
+              </el-button>
+            </div>
+          </div>
+        </el-col>
+      </el-row>
     </div>
   </div>
 </template>
@@ -106,30 +111,235 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.goods-detail-layout { background: #fff; min-height: 100vh; }
-.simple-header { border-bottom: 1px solid #eee; height: 60px; display: flex; align-items: center; }
-.simple-header .inner { width: 1200px; margin: 0 auto; display: flex; align-items: center; font-size: 18px; }
-.logo { font-weight: bold; color: #409EFF; text-decoration: none; }
-.divider { margin: 0 10px; color: #ccc; }
+.goods-detail-layout {
+  background: var(--bg-primary);
+  min-height: 100vh;
+}
 
-.detail-container { width: 1200px; margin: 40px auto; display: flex; gap: 50px; }
+.simple-header {
+  border-bottom: 1px solid var(--bg-tertiary);
+  height: 60px;
+  display: flex;
+  align-items: center;
+  background: var(--bg-primary);
+}
 
-.gallery { width: 500px; }
-.main-img { width: 100%; border-radius: 8px; border: 1px solid #f0f0f0; }
+.simple-header .inner {
+  max-width: var(--container-xl);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  font-size: 18px;
+  padding: 0 var(--space-xl);
+  width: 100%;
+}
 
-.info-box { flex: 1; }
-.title { font-size: 28px; color: #333; margin-bottom: 10px; }
-.desc { color: #999; font-size: 14px; margin-bottom: 20px; }
+.logo {
+  font-weight: bold;
+  color: var(--primary-color);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
 
-.price-row { background: #fdf5f5; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-.symbol { color: #e1251b; font-size: 16px; font-weight: bold; }
-.num { color: #e1251b; font-size: 32px; font-weight: bold; }
-.market-price { color: #999; text-decoration: line-through; margin-left: 15px; }
+.logo:hover {
+  color: var(--primary-light);
+}
 
-.meta-row, .sku-selector, .quantity-selector { margin-bottom: 25px; display: flex; align-items: center; }
-.label { width: 60px; color: #666; }
-.value { color: #333; }
+.divider {
+  margin: 0 var(--space-sm);
+  color: var(--text-tertiary);
+}
 
-.actions { margin-top: 40px; display: flex; gap: 20px; }
-.buy-btn { width: 180px; height: 50px; font-size: 18px; }
+.goods-detail-container {
+  max-width: var(--container-xl);
+  margin: 0 auto;
+  padding: var(--space-3xl) var(--space-xl);
+}
+
+.detail-row {
+  align-items: stretch;
+}
+
+.gallery-col,
+.info-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.gallery {
+  width: 100%;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 1px solid var(--bg-tertiary);
+  box-shadow: var(--shadow-md);
+  transition: box-shadow var(--transition-base);
+}
+
+.gallery:hover {
+  box-shadow: var(--shadow-hover);
+}
+
+.main-img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  display: block;
+}
+
+.info-box {
+  background: var(--bg-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--space-3xl);
+  border: 1px solid var(--bg-tertiary);
+  box-shadow: var(--shadow-sm);
+  height: 100%;
+}
+
+.title {
+  font-size: 32px;
+  color: var(--text-primary);
+  margin-bottom: var(--space-md);
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.desc {
+  color: var(--text-secondary);
+  font-size: 16px;
+  margin-bottom: var(--space-2xl);
+  line-height: 1.6;
+}
+
+.price-row {
+  background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+  padding: var(--space-xl);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-2xl);
+  border: 1px solid var(--bg-hover);
+}
+
+.symbol {
+  color: var(--danger);
+  font-size: 18px;
+  font-weight: bold;
+  margin-right: var(--space-xs);
+}
+
+.num {
+  color: var(--danger);
+  font-size: 36px;
+  font-weight: bold;
+  margin-right: var(--space-md);
+}
+
+.market-price {
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+  font-size: 18px;
+}
+
+.meta-row, .sku-selector, .quantity-selector {
+  margin-bottom: var(--space-2xl);
+  display: flex;
+  align-items: center;
+}
+
+.meta-row {
+  background: var(--bg-secondary);
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+}
+
+.label {
+  min-width: 60px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-right: var(--space-sm);
+}
+
+.value {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.actions {
+  margin-top: var(--space-3xl);
+  display: flex;
+  gap: var(--space-xl);
+  flex-wrap: wrap;
+}
+
+.buy-btn {
+  min-width: 180px;
+  height: 56px;
+  font-size: 18px;
+  font-weight: 600;
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-base);
+}
+
+.buy-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .goods-detail-container {
+    padding: var(--space-lg);
+  }
+
+  .info-box {
+    padding: var(--space-2xl);
+  }
+
+  .title {
+    font-size: 24px;
+  }
+
+  .num {
+    font-size: 30px;
+  }
+
+  .actions {
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .buy-btn {
+    width: 100%;
+  }
+
+  .simple-header .inner {
+    padding: 0 var(--space-lg);
+  }
+}
+
+@media (max-width: 480px) {
+  .goods-detail-container {
+    padding: var(--space-md);
+  }
+
+  .info-box {
+    padding: var(--space-xl);
+  }
+
+  .price-row {
+    padding: var(--space-lg);
+  }
+
+  .meta-row, .sku-selector, .quantity-selector {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
+
+  .label {
+    min-width: auto;
+    margin-right: 0;
+    margin-bottom: var(--space-xs);
+  }
+}
 </style>

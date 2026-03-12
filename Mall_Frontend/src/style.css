@@ -1,3 +1,5 @@
+@import './styles/variables.css';
+
 /* 1. 彻底清除浏览器默认的内外边距 */
 * {
   margin: 0;
@@ -8,8 +10,8 @@
 /* 2. 设置全局字体和舒适的浅色背景 */
 body {
   font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
-  background-color: #f5f7fa;
-  color: #333;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased; /* 让字体在 Mac/Win 上都更清晰 */
 }
 
@@ -25,4 +27,49 @@ a {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+/* 5. 全局滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--text-tertiary);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* 6. 全局链接悬停效果 */
+a:hover {
+  color: var(--primary-color);
+  transition: color var(--transition-fast);
+}
+
+/* 7. 全局按钮样式增强 */
+button {
+  transition: all var(--transition-fast);
+}
+
+/* 8. 全局卡片样式 */
+.card {
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--bg-tertiary);
+  transition: all var(--transition-base);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-hover);
+  border-color: var(--primary-light);
 }
