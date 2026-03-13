@@ -49,3 +49,28 @@ export const getOrders = () => {
         method: 'get'
     });
 };
+
+// 支付订单
+export const payOrder = (orderId: number) => {
+    return request({
+        url: `/orders/${orderId}/pay/`,
+        method: 'post'
+    });
+};
+
+// 修改订单地址
+export const updateOrderAddress = (orderId: number, data: { address?: string, signer_name?: string, signer_mobile?: string }) => {
+    return request({
+        url: `/orders/${orderId}/update_address/`,
+        method: 'patch',
+        data: data
+    });
+};
+
+// 取消订单
+export const cancelOrder = (orderId: number) => {
+    return request({
+        url: `/orders/${orderId}/cancel/`,
+        method: 'post'
+    });
+};

@@ -37,6 +37,7 @@ class OrderInfo(models.Model):
     post_script = models.CharField(max_length=200, null=True, blank=True, verbose_name="订单留言")
     order_mount = models.FloatField(default=0.0, verbose_name="订单总金额")
     pay_time = models.DateTimeField(null=True, blank=True, verbose_name="支付时间")
+    is_delete = models.BooleanField(default=False, verbose_name="是否逻辑删除")
 
     # 订单快照信息：防止用户未来修改了个人资料，导致历史订单的收货信息跟着变
     address = models.CharField(max_length=100, default="", verbose_name="收货详细地址")

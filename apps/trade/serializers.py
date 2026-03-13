@@ -99,3 +99,22 @@ class OrderSerializer(serializers.ModelSerializer):
         # 前端创建订单时，只需要传收货人信息和留言即可
         fields = ("user", "order_sn", "trade_no", "pay_status", "pay_time",
                   "post_script", "order_mount", "signer_name", "signer_mobile", "address")
+
+
+class OrderAddressSerializer(serializers.Serializer):
+    """修改收货地址的序列化器"""
+    address = serializers.CharField(max_length=100, required=False)
+    signer_name = serializers.CharField(max_length=20, required=False)
+    signer_mobile = serializers.CharField(max_length=11, required=False)
+
+    def validate(self, attrs):
+        # 至少提供一个字段
+        if not any(attrs.values()):
+            raise serializers.ValidationError("至少需要提供一个地址字段（address, signer_name, signer_mobile）")
+
+        # 手机号格式验证
+        if attrs.get('signer_mobile'):
+            if not attrs['signer_mobile'].isdigit() or len(attrs['signer_mobile']) != 11:
+                raise serializers.ValidationError("手机号格式不正确，应为11位数字")
+
+        return attrs

@@ -34,21 +34,51 @@
           </div>
           <div class="btns" v-if="order.pay_status !== 'TRADE_SUCCESS'">
              <el-button type="primary" size="small" @click="handlePay(order)">去支付</el-button>
+             <el-button type="warning" size="small" @click="showAddressDialog(order)">修改地址</el-button>
+             <el-button type="danger" size="small" @click="handleCancel(order)">取消订单</el-button>
           </div>
         </div>
       </el-card>
 
       <el-empty v-if="orderList.length === 0" description="您还没有下过单哦"></el-empty>
     </div>
+
+    <!-- 地址修改对话框 -->
+    <el-dialog v-model="addressDialogVisible" title="修改收货地址" width="500px">
+      <el-form :model="addressForm" label-width="80px">
+        <el-form-item label="收货人">
+          <el-input v-model="addressForm.signer_name" placeholder="请输入收货人姓名" />
+        </el-form-item>
+        <el-form-item label="联系电话">
+          <el-input v-model="addressForm.signer_mobile" placeholder="请输入11位手机号" maxlength="11" />
+        </el-form-item>
+        <el-form-item label="详细地址">
+          <el-input v-model="addressForm.address" type="textarea" placeholder="请输入详细收货地址" rows="3" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="addressDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="updateAddress">确认修改</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { getOrders } from '../api/trade';
-import { ElMessage } from 'element-plus';
+import { getOrders, payOrder, updateOrderAddress, cancelOrder } from '../api/trade';
+import { ElMessage, ElMessageBox } from 'element-plus';
 
 const orderList = ref<any[]>([]);
+const addressDialogVisible = ref(false);
+const currentOrderId = ref<number | null>(null);
+const addressForm = ref({
+  signer_name: '',
+  signer_mobile: '',
+  address: ''
+});
 
 const fetchOrders = async () => {
   try {
@@ -66,11 +96,78 @@ const formatDate = (isoString: string) => {
   return new Date(isoString).toLocaleString();
 };
 
-// 模拟支付功能（毕设常用技巧）
-const handlePay = (order: any) => {
-  // 真实支付需要跳转支付宝，这里我们直接弹窗提示演示
-  ElMessage.success(`正在前往支付宝支付订单 ${order.order_sn}...`);
-  // 在真实项目中，这里会调用后端接口获取支付宝 URL
+// 支付订单
+const handlePay = async (order: any) => {
+  try {
+    await ElMessageBox.confirm(
+      `确认支付订单 ${order.order_sn}，金额 ¥${order.order_mount}？`,
+      '确认支付',
+      { type: 'warning' }
+    );
+
+    const res = await payOrder(order.id);
+    ElMessage.success(res.message || '支付成功');
+    fetchOrders(); // 刷新订单列表
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.response?.data?.error || '支付失败');
+    }
+  }
+};
+
+// 显示地址修改对话框
+const showAddressDialog = (order: any) => {
+  currentOrderId.value = order.id;
+  addressForm.value = {
+    signer_name: order.signer_name || '',
+    signer_mobile: order.signer_mobile || '',
+    address: order.address || ''
+  };
+  addressDialogVisible.value = true;
+};
+
+// 更新地址
+const updateAddress = async () => {
+  try {
+    if (!currentOrderId.value) return;
+
+    // 过滤空值字段
+    const data: any = {};
+    if (addressForm.value.signer_name.trim()) data.signer_name = addressForm.value.signer_name;
+    if (addressForm.value.signer_mobile.trim()) data.signer_mobile = addressForm.value.signer_mobile;
+    if (addressForm.value.address.trim()) data.address = addressForm.value.address;
+
+    if (Object.keys(data).length === 0) {
+      ElMessage.warning('请至少修改一个地址字段');
+      return;
+    }
+
+    const res = await updateOrderAddress(currentOrderId.value, data);
+    ElMessage.success(res.message || '地址修改成功');
+    addressDialogVisible.value = false;
+    fetchOrders(); // 刷新订单列表
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.error || '地址修改失败');
+  }
+};
+
+// 取消订单
+const handleCancel = async (order: any) => {
+  try {
+    await ElMessageBox.confirm(
+      `确认取消订单 ${order.order_sn}？`,
+      '确认取消',
+      { type: 'warning' }
+    );
+
+    const res = await cancelOrder(order.id);
+    ElMessage.success(res.message || '订单已取消');
+    fetchOrders(); // 刷新订单列表
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.response?.data?.error || '取消失败');
+    }
+  }
 };
 
 onMounted(() => {
