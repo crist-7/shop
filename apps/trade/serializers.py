@@ -102,15 +102,16 @@ class OrderSerializer(serializers.ModelSerializer):
 
 
 class OrderAddressSerializer(serializers.Serializer):
-    """修改收货地址的序列化器"""
+    """修改订单信息的序列化器"""
     address = serializers.CharField(max_length=100, required=False)
     signer_name = serializers.CharField(max_length=20, required=False)
     signer_mobile = serializers.CharField(max_length=11, required=False)
+    post_script = serializers.CharField(max_length=200, required=False, allow_blank=True)
 
     def validate(self, attrs):
         # 至少提供一个字段
         if not any(attrs.values()):
-            raise serializers.ValidationError("至少需要提供一个地址字段（address, signer_name, signer_mobile）")
+            raise serializers.ValidationError("至少需要提供一个修改字段（address, signer_name, signer_mobile, post_script）")
 
         # 手机号格式验证
         if attrs.get('signer_mobile'):

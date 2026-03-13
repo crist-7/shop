@@ -21,9 +21,8 @@
             <p class="desc">{{ goodsInfo.goods_brief }}</p>
 
             <div class="price-row">
-              <span class="symbol">¥</span>
-              <span class="num">{{ goodsInfo.shop_price }}</span>
-              <span class="market-price">原价 ¥{{ goodsInfo.market_price }}</span>
+              <span class="num">{{ formatPrice(goodsInfo.shop_price) }}</span>
+              <span class="market-price">原价 {{ formatPrice(goodsInfo.original_price) }}</span>
             </div>
 
             <div class="meta-row">
@@ -101,6 +100,15 @@ const handleBuyNow = async () => {
   await handleAddToCart();
   // 立即打开购物车抽屉进行结算
   cartStore.toggleDrawer(true);
+};
+
+// 价格格式化函数：统一金额显示格式
+const formatPrice = (price: number | null | undefined): string => {
+  if (price === null || price === undefined || isNaN(price)) {
+    return '¥0.00';
+  }
+  // 格式化为两位小数，并添加人民币符号
+  return `¥${parseFloat(price.toString()).toFixed(2)}`;
 };
 
 onMounted(() => {
@@ -238,12 +246,6 @@ onMounted(() => {
   border: 1px solid var(--bg-hover);
 }
 
-.symbol {
-  color: var(--danger);
-  font-size: 18px;
-  font-weight: bold;
-  margin-right: var(--space-xs);
-}
 
 .num {
   color: var(--danger);

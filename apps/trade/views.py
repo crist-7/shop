@@ -50,7 +50,7 @@ class ShoppingCartViewSet(viewsets.ModelViewSet):
         return ShoppingCartSerializer
 
 
-class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.CreateModelMixin, mixins.DestroyModelMixin,
+class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin,
                    viewsets.GenericViewSet):
     """
     订单管理：使用 prefetch_related 优化订单商品详情查询
@@ -131,6 +131,50 @@ class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
         instance.is_delete = True
         instance.save()
         return Response(status=204)
+
+    def partial_update(self, request, *args, **kwargs):
+        """部分更新订单信息（仅限未支付订单）
+        允许修改字段：address, signer_name, signer_mobile, post_script
+        """
+        instance = self.get_object()
+
+        # 检查订单状态：只有未支付订单可以修改
+        if instance.pay_status != "PAYING":
+            return Response(
+                {"error": "只有未支付的订单才能修改信息"},
+                status=400
+            )
+
+        # 只允许修改特定字段
+        allowed_fields = {'address', 'signer_name', 'signer_mobile', 'post_script'}
+        data = request.data.copy()
+
+        # 过滤掉不允许的字段
+        filtered_data = {key: value for key, value in data.items() if key in allowed_fields}
+
+        if not filtered_data:
+            return Response(
+                {"error": "未提供可修改的字段（address, signer_name, signer_mobile, post_script）"},
+                status=400
+            )
+
+        # 使用序列化器验证数据
+        from .serializers import OrderAddressSerializer
+        serializer = OrderAddressSerializer(data=filtered_data, partial=True)
+        serializer.is_valid(raise_exception=True)
+
+        # 更新订单信息
+        validated_data = serializer.validated_data
+        for field, value in validated_data.items():
+            setattr(instance, field, value)
+
+        instance.save()
+
+        return Response({
+            "message": "订单信息更新成功",
+            "order_sn": instance.order_sn,
+            **validated_data
+        })
 
     @action(detail=True, methods=['post'])
     def pay(self, request, pk=None):
@@ -292,6 +336,72 @@ class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
 
         except Exception as e:
             return Response({"error": "订单取消失败"}, status=500)
+
+    @action(detail=True, methods=['post'])
+    def set_paid(self, request, pk=None):
+        """管理员手动标记订单为已支付（原子操作）
+        适用于：订单状态为 PAYING 或 WAIT_BUYER_PAY 的未支付订单
+        如果订单已支付，则直接返回成功
+        """
+        order = self.get_object()
+
+        # 检查订单状态：如果已经是成功状态，无需处理
+        if order.pay_status == "TRADE_SUCCESS":
+            return Response({
+                "message": "订单已支付，无需重复操作",
+                "order_sn": order.order_sn,
+                "pay_status": order.pay_status
+            })
+
+        # 检查订单状态：只有未支付订单可以标记为已支付
+        if order.pay_status not in ["PAYING", "WAIT_BUYER_PAY"]:
+            return Response({
+                "error": f"订单状态为{order.pay_status}，无法标记为已支付"
+            }, status=400)
+
+        # 使用数据库事务保证原子性
+        try:
+            with transaction.atomic():
+                # 锁定订单行，防止并发修改
+                order = OrderInfo.objects.select_for_update().get(id=order.id)
+
+                # 双重检查订单状态
+                if order.pay_status not in ["PAYING", "WAIT_BUYER_PAY"]:
+                    return Response({
+                        "error": f"订单状态已变更为{order.pay_status}，无法标记为已支付"
+                    }, status=400)
+
+                # 检查并扣减库存（仅当订单未支付且库存充足时）
+                order_goods = order.goods.all()
+                for item in order_goods:
+                    # 使用F表达式原子扣减库存，同时增加销量
+                    updated = Product.objects.filter(
+                        id=item.goods.id,
+                        goods_num__gte=item.goods_num  # 确保库存充足
+                    ).update(
+                        goods_num=F('goods_num') - item.goods_num,
+                        sold_num=F('sold_num') + item.goods_num
+                    )
+
+                    if not updated:
+                        raise ValidationError(f"商品{item.goods.name}库存不足")
+
+                # 更新订单状态
+                order.pay_status = "TRADE_SUCCESS"
+                order.pay_time = timezone.now()
+                order.save()
+
+                return Response({
+                    "message": "订单标记为已支付成功",
+                    "order_sn": order.order_sn,
+                    "pay_status": order.pay_status,
+                    "pay_time": order.pay_time
+                })
+
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=400)
+        except Exception as e:
+            return Response({"error": "标记为已支付失败"}, status=500)
 
 
 class DashboardSummaryView(views.APIView):

@@ -122,7 +122,7 @@
             <div class="card-content">
               <h3 class="goods-name">{{ item.name }}</h3>
               <div class="bottom-action">
-                <span class="price-num">¥ {{ item.shop_price }}</span>
+                <span class="price-num">{{ item.shop_price.toFixed(2) }}</span>
                 <el-button type="primary" size="small" @click.stop="addToCart(item)">加入购物车</el-button>
               </div>
             </div>

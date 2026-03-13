@@ -59,10 +59,9 @@ const handleLogin = () => {
         const refreshToken = res.refresh;
 
         if (accessToken) {
-          // 存入真实的 access token
+          // 存入 access token 和 refresh token
           localStorage.setItem('token', accessToken);
-          // 如果需要 refresh token 可以存到 localStorage 的另一个字段，例如 'refreshToken'
-          // localStorage.setItem('refreshToken', refreshToken);
+          localStorage.setItem('refreshToken', refreshToken);
           ElMessage.success('登录成功');
           router.push('/');
         } else {
