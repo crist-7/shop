@@ -115,4 +115,4 @@ class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
 
         # 7. 【异步任务应用】：下单后开启一个 30 分钟后执行的延时任务，检查支付状态
         # 如果 30 分钟后未支付，close_order_task 将自动关闭该订单
-        close_order_task.apply_async((order.id,), countdown=30 * 60)
+        close_order_task.apply_async(args=[order.id], countdown=30 * 60)

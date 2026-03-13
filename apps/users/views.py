@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .serializers import UserRegSerializer, UserDetailSerializer
+from .tasks import send_welcome_email_task
 
 User = get_user_model()
 
@@ -39,7 +40,10 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(re_dict, status=status.HTTP_201_CREATED, headers=headers)
 
     def perform_create(self, serializer):
-        return serializer.save()
+        user = serializer.save()
+        # 异步发送欢迎邮件
+        send_welcome_email_task.apply_async(args=[user.id])
+        return user
 
     def get_queryset(self):
         # 用户只能查看自己的信息，管理员可以查看所有用户

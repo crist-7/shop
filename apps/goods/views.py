@@ -3,6 +3,8 @@ from rest_framework.permissions import IsAuthenticated
 from .permissions import IsAdminUserOrReadOnly
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.pagination import PageNumberPagination
+from django.views.decorators.cache import cache_page
+from rest_framework.decorators import method_decorator
 
 from .models import Product, Category, Banner
 from .serializers import ProductSerializer, CategorySerializer, BannerSerializer
@@ -74,6 +76,14 @@ class CategoryViewSet(viewsets.ModelViewSet):
         Product.objects.filter(category=instance).update(is_delete=True)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @method_decorator(cache_page(60 * 60))  # 缓存1小时
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @method_decorator(cache_page(60 * 60))  # 缓存1小时
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
 class BannerViewSet(viewsets.ModelViewSet):
     """
     获取首页轮播图
@@ -83,6 +93,14 @@ class BannerViewSet(viewsets.ModelViewSet):
     queryset = Banner.objects.select_related('goods').order_by('index')
     serializer_class = BannerSerializer
     permission_classes = (IsAdminUserOrReadOnly,) # 游客只能看，管理员能改
+
+    @method_decorator(cache_page(60 * 60))  # 缓存1小时
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @method_decorator(cache_page(60 * 60))  # 缓存1小时
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 # 【新增】独立的文件上传接口
 class ImageUploadView(APIView):
     # 允许解析 multipart/form-data 格式（文件上传标准格式）
