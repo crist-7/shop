@@ -1,12 +1,14 @@
-from rest_framework import viewsets, mixins
+from rest_framework import viewsets, mixins, views
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.db import transaction
-from django.db.models import F
+from django.db.models import F, Count, Sum, Q
 from django.utils import timezone
+from django.core.cache import cache
+from datetime import timedelta
 from .models import ShoppingCart, OrderInfo, OrderGoods
 from goods.models import Product
 from .serializers import ShoppingCartSerializer, ShoppingCartDetailSerializer, OrderSerializer, OrderDetailSerializer, OrderAddressSerializer
@@ -290,3 +292,88 @@ class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
 
         except Exception as e:
             return Response({"error": "订单取消失败"}, status=500)
+
+
+class DashboardSummaryView(views.APIView):
+    """
+    仪表盘数据汇总接口
+    返回：今日订单总数、今日销售总额、待处理订单数、近七日销售走势图数据
+    使用 Redis 缓存 5 分钟，减轻数据库压力
+    """
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (JWTAuthentication,)
+
+    def get(self, request):
+        cache_key = "dashboard_summary"
+        cached_data = cache.get(cache_key)
+
+        if cached_data is not None:
+            return Response(cached_data)
+
+        # 获取当前时间（使用上海时区，settings中USE_TZ=False，直接使用本地时间）
+        now = timezone.now()
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        today_end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+
+        # 1. 今日订单总数
+        today_orders_count = OrderInfo.objects.filter(
+            add_time__range=(today_start, today_end),
+            is_delete=False
+        ).count()
+
+        # 2. 今日销售总额
+        today_sales_result = OrderInfo.objects.filter(
+            add_time__range=(today_start, today_end),
+            is_delete=False,
+            pay_status="TRADE_SUCCESS"  # 只统计已支付的订单
+        ).aggregate(total_sales=Sum('order_mount'))['total_sales'] or 0.0
+
+        # 3. 待处理订单数（状态为待支付或交易创建）
+        pending_orders_count = OrderInfo.objects.filter(
+            is_delete=False,
+            pay_status__in=["PAYING", "WAIT_BUYER_PAY"]
+        ).count()
+
+        # 4. 近七日销售走势图数据
+        seven_days_ago = today_start - timedelta(days=6)  # 包含今天共7天
+        daily_sales = []
+        daily_orders = []
+        date_labels = []
+
+        for i in range(7):
+            current_date = seven_days_ago + timedelta(days=i)
+            next_date = current_date + timedelta(days=1)
+
+            # 当日销售总额
+            day_sales = OrderInfo.objects.filter(
+                add_time__range=(current_date, next_date),
+                is_delete=False,
+                pay_status="TRADE_SUCCESS"
+            ).aggregate(total=Sum('order_mount'))['total'] or 0.0
+
+            # 当日订单总数
+            day_orders = OrderInfo.objects.filter(
+                add_time__range=(current_date, next_date),
+                is_delete=False
+            ).count()
+
+            daily_sales.append(float(day_sales))
+            daily_orders.append(day_orders)
+            date_labels.append(current_date.strftime("%m/%d"))
+
+        # 构建响应数据
+        data = {
+            "today_orders": today_orders_count,
+            "today_sales": today_sales_result,
+            "pending_orders": pending_orders_count,
+            "seven_days_stats": {
+                "dates": date_labels,
+                "sales": daily_sales,
+                "orders": daily_orders
+            }
+        }
+
+        # 缓存5分钟（300秒）
+        cache.set(cache_key, data, timeout=300)
+
+        return Response(data)

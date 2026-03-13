@@ -288,3 +288,26 @@ SESSION_COOKIE_HTTPONLY = True        # 防止 XSS 读取 Session Cookie
 SESSION_COOKIE_SECURE = False         # 开发环境为 False，生产环境应为 True
 SESSION_COOKIE_SAMESITE = 'Lax'       # 限制跨站 Cookie 发送
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # 浏览器关闭时 Session 过期
+
+# ================================================= #
+#                  Redis 缓存配置                    #
+# ================================================= #
+
+# Redis 缓存配置（使用与 Celery 相同的 Redis 实例，不同数据库）
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}/2",  # 使用数据库 2 作为缓存
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "SOCKET_CONNECT_TIMEOUT": 5,  # 连接超时（秒）
+            "SOCKET_TIMEOUT": 5,          # 读写超时（秒）
+            "CONNECTION_POOL_KWARGS": {"max_connections": 100},
+            "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
+        },
+        "KEY_PREFIX": "mall_cache",
+    }
+}
+
+# 缓存超时时间（秒）
+CACHE_TTL = 60 * 5  # 5分钟
