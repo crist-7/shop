@@ -7,12 +7,11 @@ const service = axios.create({
   timeout: 5000,
 });
 
-// 2. 请求拦截器：如果以后后台也做了真实登录，这里用来自动带上 Token
+// 2. 请求拦截器：自动带上真实的 Token
 service.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    // 如果不是假 token，就带上真实的
-    if (token && token !== 'fake-admin-token') {
+    if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
     return config;

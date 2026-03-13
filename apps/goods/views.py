@@ -1,5 +1,5 @@
 from rest_framework import mixins, viewsets, filters, permissions, status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from .permissions import IsAdminUserOrReadOnly
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.pagination import PageNumberPagination
@@ -38,7 +38,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     pagination_class = GoodsPagination
 
     # 【安全升级】：替换 AllowAny
-    permission_classes = (IsAdminUserOrReadOnly,)
+    permission_classes = (IsAuthenticatedOrReadOnly,)
 
     # 配置过滤器后端：DjangoFilter(字段过滤), OrderingFilter(排序)
     # SearchFilter已移除，使用自定义的Elasticsearch搜索

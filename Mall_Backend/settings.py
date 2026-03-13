@@ -252,3 +252,10 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE  # 使用 Django 的时区设置
 CELERY_ENABLE_UTC = False  # 使用本地时区，不使用 UTC
+
+# 信任前端开发地址，防止后台登录被拦截
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:8080",
+]

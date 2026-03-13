@@ -31,7 +31,7 @@
 import { reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import request from '../utils/request'; // 【新增】引入真实的 request 工具
+import { login } from '../api/users'; // 引入登录 API 函数
 
 const router = useRouter();
 const loginFormRef = ref();
@@ -52,20 +52,17 @@ const handleLogin = () => {
     if (valid) {
       loading.value = true;
       try {
-        // 【核心修改】：向 Django 后端发送真实的登录请求
-        // 注意：这里假设你的登录路由是 /login/ (SimpleJWT 默认配置)
-        // 如果你的后端 urls.py 中登录路径叫 /token/，请把下面改成 /token/
-        const res: any = await request.post('/login/', {
-          username: loginForm.username,
-          password: loginForm.password
-        });
+        // 调用真实的登录接口
+        const res = await login(loginForm.username, loginForm.password);
+        // JWT 返回 access 和 refresh 字段
+        const accessToken = res.access;
+        const refreshToken = res.refresh;
 
-        // JWT 通常返回 access 字段，也有些配置返回 token 字段
-        const token = res.access || res.token;
-
-        if (token) {
-          // 存入真实的 Token！
-          localStorage.setItem('token', token);
+        if (accessToken) {
+          // 存入真实的 access token
+          localStorage.setItem('token', accessToken);
+          // 如果需要 refresh token 可以存到 localStorage 的另一个字段，例如 'refreshToken'
+          // localStorage.setItem('refreshToken', refreshToken);
           ElMessage.success('登录成功');
           router.push('/');
         } else {
