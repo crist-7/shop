@@ -1,5 +1,6 @@
 # 构建阶段：使用 Node 镜像打包 Vue 项目
 FROM node:20-alpine AS build-stage
+ENV NODE_ENV=development
 
 # 设置工作目录
 WORKDIR /app
@@ -21,6 +22,7 @@ RUN npm run build
 
 # 生产阶段：使用 Nginx 镜像
 FROM nginx:alpine AS production-stage
+ENV NODE_ENV=production
 
 # 复制构建产物到 Nginx 的静态文件目录
 COPY --from=build-stage /app/dist /usr/share/nginx/html

@@ -9,6 +9,7 @@ from django.utils.decorators import method_decorator
 from .models import Product, Category, Banner
 from .serializers import ProductSerializer, CategorySerializer, BannerSerializer
 from .filters import ProductFilter
+from .documents import ProductDocument
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser
@@ -39,8 +40,9 @@ class ProductViewSet(viewsets.ModelViewSet):
     # 【安全升级】：替换 AllowAny
     permission_classes = (IsAdminUserOrReadOnly,)
 
-    # 配置三大过滤器后端：DjangoFilter(字段过滤), SearchFilter(关键词搜索), OrderingFilter(排序)
-    filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
+    # 配置过滤器后端：DjangoFilter(字段过滤), OrderingFilter(排序)
+    # SearchFilter已移除，使用自定义的Elasticsearch搜索
+    filter_backends = (DjangoFilterBackend, filters.OrderingFilter)
 
     # 指定过滤类
     filterset_class = ProductFilter
@@ -57,6 +59,40 @@ class ProductViewSet(viewsets.ModelViewSet):
         instance.is_delete = True
         instance.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def filter_queryset(self, queryset):
+        """
+        重写过滤方法，当有search参数时使用Elasticsearch，否则使用原MySQL查询
+        支持与分类过滤的组合查询
+        """
+        search_query = self.request.query_params.get('search')
+
+        if not search_query:
+            # 没有搜索关键词，使用父类的过滤逻辑（分类过滤、排序等）
+            return super().filter_queryset(queryset)
+
+        # 先应用其他过滤（分类过滤等）但不包括搜索
+        # 注意：super().filter_queryset会使用当前filter_backends（DjangoFilterBackend, OrderingFilter）
+        filtered_qs = super().filter_queryset(queryset)
+
+        # 使用Elasticsearch进行搜索
+        es_search = ProductDocument.search().query(
+            'multi_match',
+            query=search_query,
+            fields=['name^3', 'goods_brief'],  # name字段权重更高，提升相关性
+            fuzziness='AUTO'  # 支持模糊匹配（如拼写错误）
+        )
+        es_results = es_search.execute()
+
+        # 获取匹配的商品ID列表
+        product_ids = [hit.id for hit in es_results]
+
+        # 如果Elasticsearch没有结果，返回空查询集
+        if not product_ids:
+            return filtered_qs.none()
+
+        # 取交集：既符合分类过滤，又符合ES搜索结果的商品
+        return filtered_qs.filter(id__in=product_ids)
 class CategoryViewSet(viewsets.ModelViewSet):
     """
     商品分类管理 (增删改查)

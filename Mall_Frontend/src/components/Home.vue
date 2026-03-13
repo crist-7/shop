@@ -179,7 +179,7 @@ const fetchAllData = async () => {
 
 const fetchGoods = async () => {
   const params: any = {};
-  if (searchKeyword.value) params.name = searchKeyword.value;
+  if (searchKeyword.value) params.search = searchKeyword.value;
   if (activeCategoryId.value) params.category = activeCategoryId.value;
 
   const res: any = await getGoodsList(params);

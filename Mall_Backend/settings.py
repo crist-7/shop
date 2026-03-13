@@ -53,6 +53,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'django_filters',
     'corsheaders',
+    'django_elasticsearch_dsl',
+    'django_elasticsearch_dsl_drf',
 
     # 【新增】本地应用 (因为加了sys.path，这里可以直接写应用名)
     'users.apps.UsersConfig',
@@ -227,6 +229,19 @@ USE_TZ = False # 建议关闭 UTC，直接存本地时间
 # 指定自定义的用户模型
 AUTH_USER_MODEL = 'users.UserProfile'
 # 【媒体文件配置已在前面设置，这里不需要重复】
+# Elasticsearch 配置
+ELASTICSEARCH_HOSTS = os.environ.get('ELASTICSEARCH_HOST', 'http://elasticsearch:9200')
+# 将主机字符串转换为列表（支持逗号分隔的多个主机）
+if isinstance(ELASTICSEARCH_HOSTS, str):
+    # 分割逗号分隔的主机列表，并去除空格
+    ELASTICSEARCH_HOSTS = [host.strip() for host in ELASTICSEARCH_HOSTS.split(',')]
+
+ELASTICSEARCH_DSL = {
+    'default': {
+        'hosts': ELASTICSEARCH_HOSTS
+    }
+}
+
 # 在文件末尾添加 Celery 配置
 REDIS_HOST = os.environ.get('REDIS_HOST', '127.0.0.1')
 REDIS_PORT = os.environ.get('REDIS_PORT', '6379')

@@ -35,6 +35,22 @@ services:
       - shop-network
     command: redis-server --appendonly yes
 
+  # Elasticsearch 服务 (用于商品搜索)
+  elasticsearch:
+    image: elasticsearch:7.17.23
+    container_name: shop-elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    networks:
+      - shop-network
+
   # 后端 Django 服务
   backend:
     build:
@@ -47,10 +63,13 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+      elasticsearch:
+        condition: service_started
     environment:
       - DEBUG=False
       - DJANGO_SETTINGS_MODULE=Mall_Backend.settings
       - ALLOWED_HOSTS=*
+      - ELASTICSEARCH_HOST=elasticsearch:9200
       - DATABASE_HOST=db
       - DATABASE_PORT=3306
       - DATABASE_NAME=shop_db
@@ -146,4 +165,6 @@ volumes:
   mysql_data:
     driver: local
   redis_data:
+    driver: local
+  es_data:
     driver: local

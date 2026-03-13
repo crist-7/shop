@@ -19,7 +19,22 @@
       "Bash(cd \"D:\\\\dissertation\\\\shop\" && sed -i 's/\\\\r$//' docker/scripts/start.sh)",
       "Bash(docker-compose restart:*)",
       "Bash(python -m py_compile Mall_Backend/settings.py)",
-      "Bash(export DATABASE_HOST=localhost && export DEBUG=True && python manage.py check 2>&1 | head -20)"
+      "Bash(export DATABASE_HOST=localhost && export DEBUG=True && python manage.py check 2>&1 | head -20)",
+      "Bash(cd \"D:\\\\dissertation\\\\shop\" && sed -i \"s/'hosts': os.environ.get\\('ELASTICSEARCH_HOST', 'elasticsearch:9200'\\)/'hosts': os.environ.get\\('ELASTICSEARCH_HOST', 'http:\\\\/\\\\/elasticsearch:9200'\\)/\" Mall_Backend/settings.py)",
+      "Bash(cd \"D:\\\\dissertation\\\\shop\" && docker-compose -f docker-compose.dev.yml logs elasticsearch)",
+      "Bash(cd \"D:\\\\dissertation\\\\shop\" && docker-compose -f docker-compose.dev.yml ps)",
+      "Bash(cd \"D:\\\\dissertation\\\\shop\" && docker-compose -f docker-compose.dev.yml exec backend sh -c \"python -c \\\\\"import requests; r = requests.get\\('http://elasticsearch:9200'\\); print\\(r.status_code\\); print\\(r.text[:200]\\)\\\\\"\")",
+      "Bash(cd \"D:\\\\dissertation\\\\shop\" && docker-compose -f docker-compose.dev.yml exec backend sh -c \"which curl || echo 'curl not found'\")",
+      "Bash(cd \"D:\\\\dissertation\\\\shop\" && docker-compose -f docker-compose.dev.yml exec backend sh -c \"python -c \\\\\"\nimport urllib.request\nimport urllib.error\ntry:\n    response = urllib.request.urlopen\\('http://elasticsearch:9200', timeout=5\\)\n    print\\('Status:', response.status\\)\n    print\\('Response:', response.read\\(\\)[:200]\\)\nexcept Exception as e:\n    print\\('Error:', e\\)\n\\\\\"\")",
+      "Bash(cd \"D:\\\\dissertation\\\\shop\" && docker-compose -f docker-compose.dev.yml exec backend sh -c \"python -c \\\\\"\nfrom django.conf import settings\nprint\\('ELASTICSEARCH_DSL:', settings.ELASTICSEARCH_DSL\\)\nfrom elasticsearch_dsl import connections\nconnections.configure\\(**settings.ELASTICSEARCH_DSL\\)\nconn = connections.get_connection\\(\\)\nprint\\('Connection:', conn\\)\ntry:\n    info = conn.info\\(\\)\n    print\\('Cluster info:', info['cluster_name']\\)\nexcept Exception as e:\n    print\\('Error:', e\\)\n\\\\\"\")",
+      "Bash(docker ps:*)",
+      "Bash(curl -s http://localhost:9200/ | head -20)",
+      "Bash(docker exec:*)",
+      "Bash(curl -s http://localhost:9200/_cat/indices?v 2>&1)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173 2>&1 || echo \"Curl failed\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8000 2>&1 || echo \"Curl failed\")",
+      "Bash(docker restart:*)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8000/admin/ 2>&1 || echo \"Curl failed\")"
     ]
   }
 }
