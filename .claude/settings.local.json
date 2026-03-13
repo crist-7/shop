@@ -34,7 +34,8 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173 2>&1 || echo \"Curl failed\")",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8000 2>&1 || echo \"Curl failed\")",
       "Bash(docker restart:*)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8000/admin/ 2>&1 || echo \"Curl failed\")"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8000/admin/ 2>&1 || echo \"Curl failed\")",
+      "Bash(ls -la *.md)"
     ]
   }
 }
