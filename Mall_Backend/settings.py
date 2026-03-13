@@ -253,9 +253,38 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE  # 使用 Django 的时区设置
 CELERY_ENABLE_UTC = False  # 使用本地时区，不使用 UTC
 
+# ================================================= #
+#                  CSRF 安全配置                     #
+# ================================================= #
+
 # 信任前端开发地址，防止后台登录被拦截
+# 生产环境必须替换为实际域名
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:8080",
+    "http://localhost:5174",          # Vue 3 开发服务器常见端口
+    "http://127.0.0.1:5174",
+    "http://localhost:3000",          # React 开发端口
+    "http://127.0.0.1:3000",
+    # 生产环境示例（需根据实际情况配置）
+    # "https://yourdomain.com",
+    # "https://www.yourdomain.com",
 ]
+
+# CSRF Cookie 安全配置
+CSRF_COOKIE_HTTPONLY = False          # 允许 JavaScript 读取（前端需要）
+CSRF_COOKIE_SECURE = False            # 开发环境为 False，生产环境应为 True（HTTPS）
+CSRF_COOKIE_SAMESITE = 'Lax'          # 防止 CSRF 攻击的 SameSite 策略
+CSRF_USE_SESSIONS = False             # 使用 Cookie 存储 CSRF token（默认）
+CSRF_FAILURE_VIEW = 'Mall_Backend.csrf_views.csrf_failure'  # 自定义 JSON 格式 CSRF 失败视图
+
+# ================================================= #
+#                  Session 安全配置                  #
+# ================================================= #
+
+# Session Cookie 安全配置（即使使用 JWT，Session 仍用于 CSRF 等）
+SESSION_COOKIE_HTTPONLY = True        # 防止 XSS 读取 Session Cookie
+SESSION_COOKIE_SECURE = False         # 开发环境为 False，生产环境应为 True
+SESSION_COOKIE_SAMESITE = 'Lax'       # 限制跨站 Cookie 发送
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # 浏览器关闭时 Session 过期
