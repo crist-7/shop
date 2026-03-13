@@ -63,13 +63,11 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router'; // 引入路由钩子
+import { useRoute } from 'vue-router'; // 引入路由钩子
 import { getGoodsDetail } from '../api/goods';
 import { useCartStore } from '../store/cart';
-import { ElMessage } from 'element-plus';
 
 const route = useRoute();
-const router = useRouter();
 const cartStore = useCartStore();
 
 const goodsInfo = ref<any>(null);

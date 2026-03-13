@@ -4,7 +4,7 @@ from .permissions import IsAdminUserOrReadOnly
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.pagination import PageNumberPagination
 from django.views.decorators.cache import cache_page
-from rest_framework.decorators import method_decorator
+from django.utils.decorators import method_decorator
 
 from .models import Product, Category, Banner
 from .serializers import ProductSerializer, CategorySerializer, BannerSerializer

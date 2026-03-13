@@ -29,9 +29,9 @@ sys.path.insert(0, os.path.join(BASE_DIR, 'apps'))
 SECRET_KEY = 'django-insecure-01+y+%gdm*@_xs82n7k2-^1jm51&&0a&s(opv^ny72+!!&be*4'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -97,7 +97,7 @@ DATABASES = {
         'NAME': 'shop_db',
         'USER': 'root',
         'PASSWORD': 'root',
-        'HOST': '127.0.0.1',
+        'HOST': 'db',
         'PORT': '3306',
         'OPTIONS': {'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"},
     }
@@ -234,8 +234,8 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 # 访问 URL 前缀：http://localhost:8000/media/xxx.jpg
 MEDIA_URL = "/media/"
 # 在文件末尾添加 Celery 配置
-CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0'  # 使用 Redis 作为消息代理
-CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/1'
+CELERY_BROKER_URL = 'redis://redis:6379/0'  # 使用 Redis 作为消息代理
+CELERY_RESULT_BACKEND = 'redis://redis:6379/1'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'

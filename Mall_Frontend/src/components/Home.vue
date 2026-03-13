@@ -138,8 +138,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
-import { Search, ArrowDown } from '@element-plus/icons-vue';
+import { Search } from '@element-plus/icons-vue';
 import { useUserStore } from '../store/user';
 import { useCartStore } from '../store/cart';
 import { getGoodsList, getCategoryList, getBannerList } from '../api/goods'; // 确保路径正确

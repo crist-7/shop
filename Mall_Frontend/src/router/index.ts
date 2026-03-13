@@ -43,7 +43,7 @@ const router = createRouter({
 });
 
 // 【新增】简单的路由守卫 (Navigation Guard)
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
     const token = localStorage.getItem('token');
     if (to.meta.requiresAuth && !token) {
         // 如果去需要登录的页面但没token，跳转登录页

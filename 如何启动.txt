@@ -1,0 +1,31 @@
+=== 最简单的部署步骤 ===
+
+1. 确保电脑上安装了 Docker Desktop（去官网下载安装）
+
+2. 打开命令行（终端），进入项目文件夹（就是有 docker-compose.yml 文件的这个目录）
+
+3. 输入下面这行命令，然后回车：
+   docker-compose up -d
+
+4. 等待几分钟，让 Docker 下载镜像和构建项目
+
+5. 打开浏览器，访问：http://localhost
+
+搞定！
+
+=== 常用命令 ===
+• 查看运行状态：docker-compose ps
+• 查看日志：docker-compose logs
+• 停止所有服务：docker-compose down
+• 重启服务：docker-compose restart
+
+=== 如果出错了怎么办？ ===
+1. 检查 Docker 是否正在运行（桌面右下角有 Docker 图标）
+2. 查看错误信息：docker-compose logs
+3. 重新构建：docker-compose up -d --build
+
+=== 访问地址 ===
+• 前端页面：http://localhost
+• 后端API：http://localhost:8000/api/
+• 数据库：localhost:3306（用户名 root，密码 root）
+• Redis：localhost:6379

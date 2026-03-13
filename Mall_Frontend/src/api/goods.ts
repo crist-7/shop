@@ -27,3 +27,11 @@ export const getBannerList = () => {
     method: 'get'
   });
 };
+
+// 获取商品详情
+export const getGoodsDetail = (id: number | string) => {
+  return request({
+    url: `/goods/${id}/`,
+    method: 'get'
+  });
+};
