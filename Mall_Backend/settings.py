@@ -29,9 +29,14 @@ sys.path.insert(0, os.path.join(BASE_DIR, 'apps'))
 SECRET_KEY = 'django-insecure-01+y+%gdm*@_xs82n7k2-^1jm51&&0a&s(opv^ny72+!!&be*4'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['*']
+# ALLOWED_HOSTS 配置
+ALLOWED_HOSTS_ENV = os.environ.get('ALLOWED_HOSTS', '')
+if ALLOWED_HOSTS_ENV:
+    ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV.split(',')]
+else:
+    ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -94,11 +99,11 @@ WSGI_APPLICATION = 'Mall_Backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'shop_db',
-        'USER': 'root',
-        'PASSWORD': 'root',
-        'HOST': 'db',
-        'PORT': '3306',
+        'NAME': os.environ.get('DATABASE_NAME', 'shop_db'),
+        'USER': os.environ.get('DATABASE_USER', 'root'),
+        'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'root'),
+        'HOST': os.environ.get('DATABASE_HOST', '127.0.0.1'),
+        'PORT': os.environ.get('DATABASE_PORT', '3306'),
         'OPTIONS': {'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"},
     }
 }
@@ -126,13 +131,6 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
-
-USE_I18N = True
-
-USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
@@ -228,14 +226,12 @@ USE_I18N = True
 USE_TZ = False # 建议关闭 UTC，直接存本地时间
 # 指定自定义的用户模型
 AUTH_USER_MODEL = 'users.UserProfile'
-# 【新增】媒体文件配置
-# 物理存储路径：项目根目录下的 media 文件夹
-MEDIA_ROOT = os.path.join(BASE_DIR, "media")
-# 访问 URL 前缀：http://localhost:8000/media/xxx.jpg
-MEDIA_URL = "/media/"
+# 【媒体文件配置已在前面设置，这里不需要重复】
 # 在文件末尾添加 Celery 配置
-CELERY_BROKER_URL = 'redis://redis:6379/0'  # 使用 Redis 作为消息代理
-CELERY_RESULT_BACKEND = 'redis://redis:6379/1'
+REDIS_HOST = os.environ.get('REDIS_HOST', '127.0.0.1')
+REDIS_PORT = os.environ.get('REDIS_PORT', '6379')
+CELERY_BROKER_URL = f'redis://{REDIS_HOST}:{REDIS_PORT}/0'  # 使用 Redis 作为消息代理
+CELERY_RESULT_BACKEND = f'redis://{REDIS_HOST}:{REDIS_PORT}/1'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'

@@ -5,7 +5,16 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted } from 'vue';
 import CartDrawer from './components/CartDrawer.vue';
+import { useCartStore } from './store/cart';
+
+const cartStore = useCartStore();
+
+onMounted(() => {
+  // 初始化购物车状态（如果用户已登录）
+  cartStore.initCart();
+});
 </script>
 
 <style>

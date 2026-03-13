@@ -66,8 +66,10 @@ export const useCartStore = defineStore('cart', {
                 await updateShopCart(id, { nums });
                 // 这里不需要重新拉整个列表，直接本地更新以提升性能，或者也可以重新拉取
                 await this.fetchCartList();
+                ElMessage.success('购物车更新成功');
             } catch (error) {
                 console.error("更新失败", error);
+                ElMessage.error('更新失败');
             }
         },
 
@@ -79,6 +81,21 @@ export const useCartStore = defineStore('cart', {
                 await this.fetchCartList();
             } catch (error) {
                 console.error("删除失败", error);
+            }
+        },
+
+        // 清空购物车（用户登出时调用）
+        clearCart() {
+            this.cartList = [];
+        },
+
+        // 初始化购物车（应用启动或用户登录时调用）
+        async initCart() {
+            const userStore = useUserStore();
+            if (userStore.isLoggedIn) {
+                await this.fetchCartList();
+            } else {
+                this.clearCart();
             }
         }
     }

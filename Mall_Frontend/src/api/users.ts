@@ -17,3 +17,20 @@ export const register = (data: any) => {
         data: data
     });
 };
+
+// 获取当前用户信息
+export const getUserInfo = () => {
+    return request({
+        url: '/users/',
+        method: 'get'
+    });
+};
+
+// 更新当前用户信息
+export const updateUserInfo = (id: number, data: any) => {
+    return request({
+        url: `/users/${id}/`,
+        method: 'patch',
+        data: data
+    });
+};

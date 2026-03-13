@@ -29,6 +29,13 @@ const routes: Array<RouteRecordRaw> = [
         name: 'OrderList',
         component: () => import('../views/OrderList.vue'),
         meta: { requiresAuth: true } // 标记需要登录
+    },
+    // 【新增】用户个人信息页 (需要登录)
+    {
+        path: '/user/profile',
+        name: 'UserProfile',
+        component: () => import('../views/UserProfile.vue'),
+        meta: { requiresAuth: true }
     }
 ];
 

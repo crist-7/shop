@@ -31,7 +31,18 @@
           </div>
         </div>
       </div>
-      <el-empty v-else description="购物车还是空的"></el-empty>
+      <div v-else class="empty-cart">
+        <el-empty
+          image="https://img.icons8.com/ios/100/000000/shopping-cart--v1.png"
+          image-size="100"
+          description="购物车空空如也"
+        >
+          <p style="color: #999; margin-top: 8px;">快去挑选心仪的商品吧~</p>
+          <el-button type="primary" size="small" @click="cartStore.toggleDrawer(false)" style="margin-top: 16px;">
+            去逛逛
+          </el-button>
+        </el-empty>
+      </div>
     </div>
 
     <template #footer>

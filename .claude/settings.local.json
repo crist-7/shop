@@ -17,7 +17,9 @@
       "Bash(docker-compose down:*)",
       "Bash(cd \"D:\\\\dissertation\\\\shop\" && cp docker/scripts/start.sh docker/scripts/start.sh.bak && cat docker/scripts/start.sh.bak | tr -d '\\\\r' > docker/scripts/start.sh)",
       "Bash(cd \"D:\\\\dissertation\\\\shop\" && sed -i 's/\\\\r$//' docker/scripts/start.sh)",
-      "Bash(docker-compose restart:*)"
+      "Bash(docker-compose restart:*)",
+      "Bash(python -m py_compile Mall_Backend/settings.py)",
+      "Bash(export DATABASE_HOST=localhost && export DEBUG=True && python manage.py check 2>&1 | head -20)"
     ]
   }
 }

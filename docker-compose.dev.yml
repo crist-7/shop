@@ -1,0 +1,100 @@
+services:
+  # MySQL 数据库服务 (与生产相同)
+  db:
+    image: mysql:8.0
+    container_name: shop-db-dev
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: shop_db
+      MYSQL_USER: shop_user
+      MYSQL_PASSWORD: shop_password
+      TZ: Asia/Shanghai
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data_dev:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - shop-network-dev
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Redis 服务 (与生产相同)
+  redis:
+    image: redis:7-alpine
+    container_name: shop-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_dev:/data
+    networks:
+      - shop-network-dev
+    command: redis-server --appendonly yes
+
+  # 后端 Django 服务 (开发模式)
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: shop-backend-dev
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - DEBUG=True
+      - DJANGO_SETTINGS_MODULE=Mall_Backend.settings
+      - DATABASE_HOST=db
+      - DATABASE_PORT=3306
+      - DATABASE_NAME=shop_db
+      - DATABASE_USER=root
+      - DATABASE_PASSWORD=root
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./media:/app/media
+      - ./apps:/app/apps
+      - ./Mall_Backend:/app/Mall_Backend
+      - ./manage.py:/app/manage.py
+      - ./requirements.txt:/app/requirements.txt
+    networks:
+      - shop-network-dev
+    command: python manage.py runserver 0.0.0.0:8000
+
+  # 前端 Vue 服务 (开发模式)
+  frontend:
+    build:
+      context: ./Mall_Frontend
+      dockerfile: Dockerfile.frontend.dev
+    container_name: shop-frontend-dev
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./Mall_Frontend:/app
+      - /app/node_modules  # 避免覆盖容器内的 node_modules
+    networks:
+      - shop-network-dev
+    # command 已经在 Dockerfile.frontend.dev 中定义
+
+networks:
+  shop-network-dev:
+    driver: bridge
+
+volumes:
+  mysql_data_dev:
+    driver: local
+  redis_data_dev:
+    driver: local
