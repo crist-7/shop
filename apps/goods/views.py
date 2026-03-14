@@ -216,7 +216,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     def filter_queryset(self, queryset):
         """
         重写过滤方法，当有search参数时使用Elasticsearch，否则使用原MySQL查询
-        支持与分类过滤的组合查询
+        支持与分类过滤的组合查询，使用 IK 中文分词器
         """
         search_query = self.request.query_params.get('search')
 
@@ -228,12 +228,13 @@ class ProductViewSet(viewsets.ModelViewSet):
         # 注意：super().filter_queryset会使用当前filter_backends（DjangoFilterBackend, OrderingFilter）
         filtered_qs = super().filter_queryset(queryset)
 
-        # 使用Elasticsearch进行搜索
+        # 使用 Elasticsearch 进行中文分词搜索
+        # 注意：不使用 fuzziness，因为中文分词场景下模糊匹配效果不佳
         es_search = ProductDocument.search().query(
             'multi_match',
             query=search_query,
-            fields=['name^3', 'goods_brief'],  # name字段权重更高，提升相关性
-            fuzziness='AUTO'  # 支持模糊匹配（如拼写错误）
+            fields=['name^3', 'goods_brief'],  # name 字段权重更高，提升相关性
+            type='best_fields',                # 最佳字段匹配模式
         )
         es_results = es_search.execute()
 
