@@ -7,7 +7,7 @@ from django.conf import settings
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from goods.views import ProductViewSet, CategoryViewSet, BannerViewSet,ImageUploadView
 from users.views import UserViewSet
-from trade.views import ShoppingCartViewSet, OrderViewSet, DashboardSummaryView
+from trade.views import ShoppingCartViewSet, OrderViewSet, DashboardSummaryView, DashboardRecentOrdersView
 
 
 
@@ -31,6 +31,7 @@ urlpatterns = [
     path('api/login/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/upload/', ImageUploadView.as_view(), name='image-upload'),
     path('api/dashboard/summary/', DashboardSummaryView.as_view(), name='dashboard-summary'),
+    path('api/dashboard/recent_orders/', DashboardRecentOrdersView.as_view(), name='dashboard-recent-orders'),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -487,3 +487,38 @@ class DashboardSummaryView(views.APIView):
         cache.set(cache_key, data, timeout=300)
 
         return Response(data)
+
+
+class DashboardRecentOrdersView(views.APIView):
+    """
+    仪表盘最近订单接口
+    返回最新的5条订单记录，包含订单号、金额、状态和下单时间
+    优化：使用only()限制查询字段，减少数据库负担
+    """
+    permission_classes = (IsAuthenticated,)
+    authentication_classes = (JWTAuthentication,)
+
+    def get(self, request):
+        # 使用only()限制查询字段，减少数据库负担
+        # 结合select_related('user')获取用户名，避免N+1查询
+        recent_orders = OrderInfo.objects.filter(
+            is_delete=False
+        ).select_related('user').only(
+            'order_sn', 'order_mount', 'pay_status', 'add_time', 'user__username'
+        ).order_by('-add_time')[:5]
+
+        # 构建响应数据
+        data = []
+        for order in recent_orders:
+            # 转换状态显示文字
+            status_display = dict(OrderInfo.ORDER_STATUS).get(order.pay_status, order.pay_status)
+            data.append({
+                'id': order.id,  # 添加订单ID，用于详情查询
+                'order_sn': order.order_sn,
+                'customer': order.user.username if order.user else '',
+                'amount': order.order_mount,
+                'status': status_display,
+                'create_time': order.add_time.strftime('%Y-%m-%d %H:%M') if order.add_time else ''
+            })
+
+        return Response(data)

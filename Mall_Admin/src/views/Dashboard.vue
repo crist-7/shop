@@ -190,6 +190,65 @@
       </el-table>
     </div>
   </div>
+
+  <!-- 订单详情对话框 -->
+  <el-dialog
+    v-model="dialogVisible"
+    title="订单详情"
+    width="800px"
+    :close-on-click-modal="false"
+  >
+    <el-skeleton :loading="orderDetailLoading" animated :rows="10">
+      <template #default>
+        <div v-if="orderDetail">
+          <!-- 订单基本信息 -->
+          <div class="order-info-section">
+            <h3>订单信息</h3>
+            <el-descriptions :column="2" border>
+              <el-descriptions-item label="订单号">{{ orderDetail.order_sn }}</el-descriptions-item>
+              <el-descriptions-item label="订单状态">
+                <el-tag :type="getStatusType(orderDetail.pay_status)">{{ getStatusText(orderDetail.pay_status) }}</el-tag>
+              </el-descriptions-item>
+              <el-descriptions-item label="订单金额">¥{{ orderDetail.order_mount }}</el-descriptions-item>
+              <el-descriptions-item label="下单时间">{{ orderDetail.add_time }}</el-descriptions-item>
+              <el-descriptions-item label="收货人">{{ orderDetail.signer_name }}</el-descriptions-item>
+              <el-descriptions-item label="联系电话">{{ orderDetail.signer_mobile }}</el-descriptions-item>
+              <el-descriptions-item label="收货地址" :span="2">{{ orderDetail.address }}</el-descriptions-item>
+              <el-descriptions-item label="订单留言" :span="2">{{ orderDetail.post_script || '无' }}</el-descriptions-item>
+            </el-descriptions>
+          </div>
+
+          <!-- 商品清单 -->
+          <div class="goods-section" v-if="orderDetail.goods && orderDetail.goods.length > 0">
+            <h3>商品清单</h3>
+            <el-table :data="orderDetail.goods" style="width: 100%" border>
+              <el-table-column prop="goods.name" label="商品名称" width="200" />
+              <el-table-column prop="goods_num" label="数量" width="100" />
+              <el-table-column prop="price" label="单价" width="100">
+                <template #default="{ row }">¥{{ row.price }}</template>
+              </el-table-column>
+              <el-table-column prop="total" label="小计" width="120">
+                <template #default="{ row }">¥{{ (row.goods_num * row.price).toFixed(2) }}</template>
+              </el-table-column>
+            </el-table>
+          </div>
+          <div v-else class="goods-section">
+            <h3>商品清单</h3>
+            <el-empty description="暂无商品信息" />
+          </div>
+        </div>
+        <div v-else>
+          <el-empty description="订单详情加载失败" />
+        </div>
+      </template>
+    </el-skeleton>
+
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="dialogVisible = false">关闭</el-button>
+      </span>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup lang="ts">
@@ -197,6 +256,7 @@ import { ref, onMounted, onUnmounted, reactive, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import * as echarts from 'echarts';
 import request from '@/utils/request';
+import { getRecentOrders, getOrderDetail } from '@/api/orders';
 import {
   Money, ShoppingCart, User, View, TrendCharts, Operation,
   Document, Top, Bottom, Plus, Goods, Promotion
@@ -478,23 +538,68 @@ const useChart = () => {
 };
 
 // 最近订单数据
-const recentOrders = ref([
-  { orderSn: '20230315001', customer: '张三', amount: 128.50, status: '已支付', createTime: '2023-03-15 10:30' },
-  { orderSn: '20230315002', customer: '李四', amount: 256.00, status: '待发货', createTime: '2023-03-15 11:15' },
-  { orderSn: '20230315003', customer: '王五', amount: 89.90, status: '已完成', createTime: '2023-03-15 12:45' },
-  { orderSn: '20230315004', customer: '赵六', amount: 320.80, status: '已支付', createTime: '2023-03-15 14:20' },
-  { orderSn: '20230315005', customer: '孙七', amount: 45.00, status: '已取消', createTime: '2023-03-15 15:10' }
-]);
+const recentOrders = ref([]);
 
-// 获取状态标签类型
+// 加载最近订单
+const loadRecentOrders = async () => {
+  try {
+    const response = await getRecentOrders();
+    // 转换字段名：后端返回下划线风格，前端使用驼峰
+    recentOrders.value = response.map((item: any) => ({
+      id: item.id,  // 保存订单ID，用于详情查询
+      orderSn: item.order_sn,
+      customer: item.customer,
+      amount: item.amount,
+      status: item.status,
+      createTime: item.create_time
+    }));
+  } catch (error) {
+    console.error('加载最近订单失败:', error);
+    // 失败时使用默认数据（仅用于演示）
+    recentOrders.value = [
+      { id: 1, orderSn: '20230315001', customer: '张三', amount: 128.50, status: '成功', createTime: '2023-03-15 10:30' },
+      { id: 2, orderSn: '20230315002', customer: '李四', amount: 256.00, status: '交易创建', createTime: '2023-03-15 11:15' },
+      { id: 3, orderSn: '20230315003', customer: '王五', amount: 89.90, status: '交易结束', createTime: '2023-03-15 12:45' },
+      { id: 4, orderSn: '20230315004', customer: '赵六', amount: 320.80, status: '成功', createTime: '2023-03-15 14:20' },
+      { id: 5, orderSn: '20230315005', customer: '孙七', amount: 45.00, status: '超时关闭', createTime: '2023-03-15 15:10' }
+    ];
+  }
+};
+
+// 获取状态标签类型（支持状态码和中文状态）
 const getStatusType = (status: string) => {
   const map: Record<string, string> = {
+    // 状态码映射
+    'TRADE_SUCCESS': 'success',
+    'TRADE_CLOSED': 'danger',
+    'WAIT_BUYER_PAY': 'warning',
+    'TRADE_FINISHED': 'info',
+    'PAYING': 'warning',
+    // 中文状态映射
+    '成功': 'success',
+    '超时关闭': 'danger',
+    '交易创建': 'warning',
+    '交易结束': 'info',
+    '待支付': 'warning',
+    // 兼容旧数据
     '已支付': 'success',
     '待发货': 'warning',
     '已完成': 'info',
     '已取消': 'danger'
   };
   return map[status] || 'info';
+};
+
+// 状态码转中文显示
+const getStatusText = (statusCode: string) => {
+  const statusMap: Record<string, string> = {
+    'TRADE_SUCCESS': '成功',
+    'TRADE_CLOSED': '超时关闭',
+    'WAIT_BUYER_PAY': '交易创建',
+    'TRADE_FINISHED': '交易结束',
+    'PAYING': '待支付'
+  };
+  return statusMap[statusCode] || statusCode;
 };
 
 // 事件处理
@@ -525,12 +630,42 @@ const handleQuickAction = (action: string) => {
   }
 };
 
+// 订单详情对话框状态
+const dialogVisible = ref(false);
+const orderDetail = ref<any>(null);
+const orderDetailLoading = ref(false);
+
 const handleViewAllOrders = () => {
-  console.log('查看所有订单');
+  router.push('/orders');
 };
 
-const handleViewOrder = (order: any) => {
+const handleViewOrder = async (order: any) => {
   console.log('查看订单:', order);
+  orderDetailLoading.value = true;
+  dialogVisible.value = true;
+
+  try {
+    // 根据订单ID获取详情
+    const response = await getOrderDetail(order.id);
+    orderDetail.value = response;
+  } catch (error) {
+    console.error('获取订单详情失败:', error);
+    // 如果API调用失败，使用表格中的基本信息
+    orderDetail.value = {
+      order_sn: order.orderSn,
+      customer: order.customer,
+      amount: order.amount,
+      status: order.status,
+      create_time: order.createTime,
+      address: '详情加载失败',
+      signer_name: '详情加载失败',
+      signer_mobile: '详情加载失败',
+      post_script: '详情加载失败',
+      goods: []
+    };
+  } finally {
+    orderDetailLoading.value = false;
+  }
 };
 
 // 使用组合式API
@@ -539,6 +674,7 @@ const { chartRef, resizeChart, loadChartData } = useChart();
 
 onMounted(async () => {
   await loadStats();
+  await loadRecentOrders();
   loadChartData();
 
   window.addEventListener('resize', resizeChart);
@@ -916,5 +1052,63 @@ onUnmounted(() => {
   .num {
     font-size: 28px;
   }
+}
+
+/* 订单详情对话框样式 */
+.order-info-section {
+  margin-bottom: 24px;
+}
+
+.order-info-section h3 {
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.goods-section {
+  margin-top: 24px;
+}
+
+.goods-section h3 {
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* 对话框深色主题适配 */
+:deep(.el-dialog) {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-xl);
+}
+
+:deep(.el-dialog__header) {
+  border-bottom: 1px solid var(--border-glass);
+  padding: 20px 24px;
+  margin: 0;
+}
+
+:deep(.el-dialog__title) {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+:deep(.el-dialog__body) {
+  padding: 24px;
+  color: var(--text-primary);
+}
+
+:deep(.el-descriptions__title) {
+  color: var(--text-primary);
+}
+
+:deep(.el-descriptions__label) {
+  color: var(--text-secondary);
+}
+
+:deep(.el-descriptions__content) {
+  color: var(--text-primary);
 }
 </style>

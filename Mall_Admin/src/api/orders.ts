@@ -58,3 +58,11 @@ export const updateOrderAddress = (id: number, data: any) => {
     data
   });
 };
+
+// 获取最近订单（仪表盘用）
+export const getRecentOrders = () => {
+  return request({
+    url: '/dashboard/recent_orders/',
+    method: 'get'
+  });
+};
