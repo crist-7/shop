@@ -8,6 +8,7 @@ from django.db import transaction
 from django.db.models import F, Count, Sum, Q
 from django.utils import timezone
 from django.core.cache import cache
+from django.conf import settings
 from datetime import timedelta
 from .models import ShoppingCart, OrderInfo, OrderGoods
 from goods.models import Product
@@ -15,6 +16,17 @@ from .serializers import ShoppingCartSerializer, ShoppingCartDetailSerializer, O
 from .tasks import close_order_task  # 导入异步任务
 import time
 import random
+import logging
+
+# Redis 分布式锁支持
+try:
+    import redis
+    from redis_lock import Lock as RedisLock
+    REDIS_LOCK_AVAILABLE = True
+except ImportError:
+    REDIS_LOCK_AVAILABLE = False
+
+logger = logging.getLogger(__name__)
 
 
 # ============================================================
@@ -37,11 +49,86 @@ def clear_recent_orders_cache():
     """清除最近订单缓存"""
     cache.delete(CACHE_RECENT_ORDERS_KEY)
 
-# 高并发控制可选方案：Redis分布式锁
-# 如果需要跨进程/跨服务器并发控制，可以取消以下注释并安装redis和redis-lock库
-# import redis
-# from django_redis import get_redis_connection
-# import redis_lock
+
+def get_redis_connection():
+    """
+    获取 Redis 连接实例，用于分布式锁
+    使用 settings 中配置的 REDIS_HOST 和 REDIS_PORT
+    """
+    if not REDIS_LOCK_AVAILABLE:
+        return None
+
+    try:
+        redis_host = getattr(settings, 'REDIS_HOST', '127.0.0.1')
+        redis_port = getattr(settings, 'REDIS_PORT', 6379)
+
+        return redis.StrictRedis(
+            host=redis_host,
+            port=int(redis_port),
+            db=3,  # 使用 db3 作为分布式锁专用数据库
+            decode_responses=True,
+            socket_connect_timeout=5,
+            socket_timeout=5
+        )
+    except Exception as e:
+        logger.warning(f"Redis connection failed: {e}")
+        return None
+
+
+class DistributedLock:
+    """
+    Redis 分布式锁上下文管理器
+    支持:
+    - 自动获取/释放锁
+    - 锁超时自动释放（防止死锁）
+    - 降级处理（Redis 不可用时跳过锁）
+    """
+    def __init__(self, lock_key, expire=10, timeout=5):
+        """
+        :param lock_key: 锁的唯一标识
+        :param expire: 锁过期时间（秒），防止死锁
+        :param timeout: 获取锁超时时间（秒）
+        """
+        self.lock_key = lock_key
+        self.expire = expire
+        self.timeout = timeout
+        self.lock = None
+        self.redis_conn = None
+        self.acquired = False
+
+    def __enter__(self):
+        if not REDIS_LOCK_AVAILABLE:
+            return self
+
+        self.redis_conn = get_redis_connection()
+        if self.redis_conn is None:
+            return self
+
+        try:
+            self.lock = RedisLock(
+                self.redis_conn,
+                self.lock_key,
+                expire=self.expire,
+                auto_renewal=True  # 自动续期
+            )
+            # 尝试获取锁，设置超时
+            self.acquired = self.lock.acquire(timeout=self.timeout)
+            if not self.acquired:
+                raise TimeoutError(f"Failed to acquire lock: {self.lock_key}")
+        except Exception as e:
+            logger.warning(f"Redis lock acquisition failed: {e}")
+            # 降级：锁获取失败时继续执行（依赖数据库锁兜底）
+            self.lock = None
+
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.lock and self.acquired:
+            try:
+                self.lock.release()
+            except Exception as e:
+                logger.warning(f"Redis lock release failed: {e}")
+        return False  # 不抑制异常
 
 class ShoppingCartViewSet(viewsets.ModelViewSet):
     """
@@ -204,12 +291,11 @@ class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
     @action(detail=True, methods=['post'])
     def pay(self, request, pk=None):
         """支付订单：模拟支付接口，更新状态并扣减库存
-        高并发控制方案：
-        1. Redis分布式锁：防止跨进程/跨服务器并发（可选，需安装redis-lock）
-        2. 数据库事务+行级锁：保证数据库操作原子性
+        高并发控制方案（双重保障）:
+        1. Redis 分布式锁：防止跨进程/跨服务器并发
+        2. 数据库事务 + 行级锁：保证数据库操作原子性（兜底）
         3. 双重检查：防止状态在检查后发生变化
         """
-        # 优化：预加载订单商品和商品信息，避免 N+1 查询
         order = self.get_object()
 
         # 检查订单状态
@@ -219,29 +305,31 @@ class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
                 status=400
             )
 
-        # ========== 高并发控制：Redis分布式锁（可选）==========
-        # 在生产环境中，如果需要跨进程/跨服务器的并发控制，可以启用以下代码
-        # 需要安装：pip install redis redis-lock
-        # try:
-        #     redis_conn = get_redis_connection("default")
-        #     lock_key = f"order_pay_lock:{order.id}"
-        #     # 获取分布式锁，超时时间10秒，防止死锁
-        #     with redis_lock.Lock(redis_conn, lock_key, expire=10, auto_renewal=True):
-        #         return self._process_payment_with_lock(order)
-        # except redis_lock.NotAcquired:
-        #     return Response(
-        #         {"error": "订单正在处理中，请稍后再试"},
-        #         status=409  # 409 Conflict
-        #     )
-        # except ImportError:
-        #     # Redis锁不可用，降级为数据库锁
-        #     pass
+        # ========== Redis 分布式锁 ==========
+        lock_key = f"order_pay_lock:{order.id}"
 
-        # 使用数据库事务保证原子性（单服务器场景）
+        try:
+            with DistributedLock(lock_key, expire=10, timeout=5):
+                return self._process_payment(order)
+        except TimeoutError:
+            # 锁获取超时，表示有其他进程正在处理
+            return Response(
+                {"error": "订单正在处理中，请稍后再试"},
+                status=409  # 409 Conflict
+            )
+        except Exception as e:
+            logger.error(f"Payment processing error: {e}")
+            return Response({"error": "支付处理失败"}, status=500)
+
+    def _process_payment(self, order):
+        """
+        处理支付核心逻辑
+        在分布式锁保护下执行，同时使用数据库事务保证原子性
+        """
         try:
             with transaction.atomic():
-                # 使用select_for_update锁定订单行，防止并发修改
-                # 优化：同时预加载订单商品和商品信息，避免 N+1 查询
+                # 使用 select_for_update 锁定订单行，防止并发修改
+                # 这是双重保障：即使 Redis 锁失效，数据库锁也能保护
                 order = OrderInfo.objects.select_for_update().prefetch_related(
                     'goods__goods'
                 ).get(id=order.id)
@@ -256,7 +344,7 @@ class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
                 # 扣减库存（原子操作）
                 order_goods = order.goods.all()
                 for item in order_goods:
-                    # 使用F表达式原子扣减库存，同时增加销量
+                    # 使用 F 表达式原子扣减库存，同时增加销量
                     # 条件：库存充足才更新
                     updated = Product.objects.filter(
                         id=item.goods.id,
@@ -286,8 +374,6 @@ class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
 
         except ValidationError as e:
             return Response({"error": str(e)}, status=400)
-        except Exception as e:
-            return Response({"error": "支付处理失败"}, status=500)
 
     @action(detail=True, methods=['patch'])
     def update_address(self, request, pk=None):
