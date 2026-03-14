@@ -12,10 +12,17 @@
           :key="item.id"
           class="cart-item"
         >
-          <img
-            :src="item.goods.goods_front_image || 'https://via.placeholder.com/80'"
-            class="item-img"
-          />
+          <!-- 商品图片：使用本地占位符替代外部 CDN -->
+          <div class="item-img-wrapper">
+            <img
+              v-if="item.goods.goods_front_image"
+              :src="item.goods.goods_front_image"
+              class="item-img"
+            />
+            <div v-else class="item-img-placeholder">
+              <el-icon :size="32"><Picture /></el-icon>
+            </div>
+          </div>
           <div class="item-info">
             <div class="item-title">{{ item.goods.name }}</div>
             <div class="item-price">¥ {{ item.goods.shop_price }}</div>
@@ -31,12 +38,12 @@
           </div>
         </div>
       </div>
+      <!-- 空购物车：使用本地 SVG 图标替代外部 CDN -->
       <div v-else class="empty-cart">
-        <el-empty
-          image="https://img.icons8.com/ios/100/000000/shopping-cart--v1.png"
-          image-size="100"
-          description="购物车空空如也"
-        >
+        <el-empty description="购物车空空如也">
+          <template #image>
+            <el-icon :size="80" color="#c0c4cc"><ShoppingCart /></el-icon>
+          </template>
           <p style="color: #999; margin-top: 8px;">快去挑选心仪的商品吧~</p>
           <el-button type="primary" size="small" @click="cartStore.toggleDrawer(false)" style="margin-top: 16px;">
             去逛逛
@@ -96,6 +103,7 @@ import { ref, reactive } from 'vue';
 import { useCartStore } from '../store/cart';
 import { createOrder } from '../api/trade';
 import { ElMessageBox, ElMessage } from 'element-plus';
+import { ShoppingCart, Picture } from '@element-plus/icons-vue';
 
 const cartStore = useCartStore();
 const dialogVisible = ref(false);
@@ -184,6 +192,19 @@ const submitOrder = async () => {
   height: 80px;
   object-fit: cover;
   border-radius: 4px;
+}
+.item-img-wrapper {
+  flex-shrink: 0;
+}
+.item-img-placeholder {
+  width: 80px;
+  height: 80px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c0c4cc;
 }
 .item-info {
   flex: 1;

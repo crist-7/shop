@@ -59,15 +59,26 @@
         </div>
 
         <div class="header-right">
-          <el-dropdown>
+          <el-dropdown trigger="click" @command="handleCommand">
             <span class="user-info">
-              <el-avatar :size="30" src="https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png" />
+              <!-- 使用本地 Icon 替代外部 CDN 头像，避免网络延迟 -->
+              <el-avatar :size="30" class="avatar-icon">
+                <el-icon :size="18"><User /></el-icon>
+              </el-avatar>
               <span style="margin-left: 8px">Admin</span>
-              <el-icon class="el-icon--right"><arrow-down /></el-icon>
+              <el-icon class="el-icon--right"><ArrowDown /></el-icon>
             </span>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item @click="handleLogout">退出登录</el-dropdown-item>
+                <el-dropdown-item command="profile">
+                  <el-icon><User /></el-icon>个人中心
+                </el-dropdown-item>
+                <el-dropdown-item command="settings">
+                  <el-icon><Setting /></el-icon>系统设置
+                </el-dropdown-item>
+                <el-dropdown-item divided command="logout">
+                  <el-icon><SwitchButton /></el-icon>退出登录
+                </el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -87,15 +98,30 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { useRouter } from 'vue-router';
 import { ElMessageBox, ElMessage } from 'element-plus';
+import { User, Setting, SwitchButton } from '@element-plus/icons-vue';
 
 const isCollapse = ref(false);
 const router = useRouter();
-// const route = useRoute(); // 供面包屑使用
 
 const toggleCollapse = () => {
   isCollapse.value = !isCollapse.value;
+};
+
+// 处理下拉菜单命令
+const handleCommand = (command: string) => {
+  switch (command) {
+    case 'profile':
+      ElMessage.info('个人中心功能开发中');
+      break;
+    case 'settings':
+      ElMessage.info('系统设置功能开发中');
+      break;
+    case 'logout':
+      handleLogout();
+      break;
+  }
 };
 
 const handleLogout = () => {
@@ -104,7 +130,6 @@ const handleLogout = () => {
     cancelButtonText: '取消',
     type: 'warning',
   }).then(() => {
-    // 这里清除 token
     localStorage.removeItem('token');
     ElMessage.success('已退出登录');
     router.push('/login');
@@ -212,6 +237,11 @@ const handleLogout = () => {
 
 .user-info:hover {
   color: var(--primary-color);
+}
+
+.avatar-icon {
+  background: linear-gradient(135deg, var(--primary-color), #6a8eff);
+  color: white;
 }
 
 .main {
