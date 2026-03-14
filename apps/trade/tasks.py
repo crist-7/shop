@@ -2,7 +2,7 @@ from celery import shared_task
 from django.db import transaction, DatabaseError
 from django.db.models import F
 from django.core.cache import cache
-from django_redis.exceptions import RedisError
+from redis.exceptions import RedisError
 from .models import OrderInfo, OrderGoods
 from goods.models import Product
 import logging
