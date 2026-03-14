@@ -184,6 +184,7 @@ class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
         2. 数据库事务+行级锁：保证数据库操作原子性
         3. 双重检查：防止状态在检查后发生变化
         """
+        # 优化：预加载订单商品和商品信息，避免 N+1 查询
         order = self.get_object()
 
         # 检查订单状态
@@ -215,7 +216,10 @@ class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
         try:
             with transaction.atomic():
                 # 使用select_for_update锁定订单行，防止并发修改
-                order = OrderInfo.objects.select_for_update().get(id=order.id)
+                # 优化：同时预加载订单商品和商品信息，避免 N+1 查询
+                order = OrderInfo.objects.select_for_update().prefetch_related(
+                    'goods__goods'
+                ).get(id=order.id)
 
                 # 双重检查订单状态（防止状态在检查后发生变化）
                 if order.pay_status != "PAYING":
@@ -306,8 +310,10 @@ class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
 
         try:
             with transaction.atomic():
-                # 锁定订单行
-                order = OrderInfo.objects.select_for_update().get(id=order.id)
+                # 锁定订单行，同时预加载订单商品信息，避免 N+1 查询
+                order = OrderInfo.objects.select_for_update().prefetch_related(
+                    'goods__goods'
+                ).get(id=order.id)
 
                 # 再次检查状态
                 if order.pay_status not in ["PAYING", "WAIT_BUYER_PAY"]:
@@ -362,8 +368,10 @@ class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
         # 使用数据库事务保证原子性
         try:
             with transaction.atomic():
-                # 锁定订单行，防止并发修改
-                order = OrderInfo.objects.select_for_update().get(id=order.id)
+                # 锁定订单行，同时预加载订单商品信息，避免 N+1 查询
+                order = OrderInfo.objects.select_for_update().prefetch_related(
+                    'goods__goods'
+                ).get(id=order.id)
 
                 # 双重检查订单状态
                 if order.pay_status not in ["PAYING", "WAIT_BUYER_PAY"]:
