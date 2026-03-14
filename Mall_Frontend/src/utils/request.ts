@@ -2,13 +2,30 @@ import axios from 'axios';
 import { ElMessage } from 'element-plus';
 import 'element-plus/theme-chalk/el-message.css'; // 引入消息提示样式
 
+// ============================================================
+// CSRF Token 工具函数
+// 从 Cookie 中读取 Django 设置的 csrftoken
+// ============================================================
+function getCsrfTokenFromCookie(): string | null {
+    const name = 'csrftoken';
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        cookie = cookie.trim();
+        if (cookie.startsWith(name + '=')) {
+            return decodeURIComponent(cookie.substring(name.length + 1));
+        }
+    }
+    return null;
+}
+
 // 1. 创建 axios 实例
 const service = axios.create({
     baseURL: 'http://127.0.0.1:8000/api', // 指向你的 Django 后端 API 地址
     timeout: 5000, // 请求超时时间
+    withCredentials: true, // 跨域请求时携带 Cookie（CSRF Token 需要）
 });
 
-// 2. 请求拦截器 (在发送请求前自动携带 Token)
+// 2. 请求拦截器 (在发送请求前自动携带 JWT Token 和 CSRF Token)
 service.interceptors.request.use(
     (config) => {
         // 从浏览器本地存储中获取 JWT Token
@@ -17,6 +34,13 @@ service.interceptors.request.use(
             // 如果有 token，按规范添加到请求头中
             config.headers['Authorization'] = `Bearer ${token}`;
         }
+
+        // 添加 CSRF Token 到请求头（Django 要求非安全方法携带）
+        const csrfToken = getCsrfTokenFromCookie();
+        if (csrfToken) {
+            config.headers['X-CSRFToken'] = csrfToken;
+        }
+
         return config;
     },
     (error) => {
@@ -39,7 +63,13 @@ service.interceptors.response.use(
                     // 实际项目中这里可以加代码跳转到登录页
                     break;
                 case 403:
-                    ElMessage.error('您没有权限进行此操作');
+                    // 特殊处理 CSRF 校验失败
+                    const detail = response.data?.detail || '';
+                    if (detail.includes('CSRF')) {
+                        ElMessage.error('CSRF 校验失败，请刷新页面后重试');
+                    } else {
+                        ElMessage.error('您没有权限进行此操作');
+                    }
                     break;
                 case 404:
                     ElMessage.error('请求的资源不存在');

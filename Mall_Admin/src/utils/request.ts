@@ -2,13 +2,30 @@ import axios from 'axios';
 import { ElMessage } from 'element-plus';
 import type { AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 
+// ============================================================
+// CSRF Token 工具函数
+// 从 Cookie 中读取 Django 设置的 csrftoken
+// ============================================================
+function getCsrfTokenFromCookie(): string | null {
+  const name = 'csrftoken';
+  const cookies = document.cookie.split(';');
+  for (let cookie of cookies) {
+    cookie = cookie.trim();
+    if (cookie.startsWith(name + '=')) {
+      return decodeURIComponent(cookie.substring(name.length + 1));
+    }
+  }
+  return null;
+}
+
 // 1. 创建 axios 实例，指向你的 Django 后端地址
 const service = axios.create({
   baseURL: 'http://127.0.0.1:8000/api',
   timeout: 5000,
+  withCredentials: true, // 跨域请求时携带 Cookie（CSRF Token 需要）
 });
 
-// 2. 请求拦截器：自动带上 JWT Token
+// 2. 请求拦截器：自动带上 JWT Token 和 CSRF Token
 service.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     // 从 localStorage 获取 access token
@@ -16,6 +33,13 @@ service.interceptors.request.use(
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
+
+    // 添加 CSRF Token 到请求头（Django 要求非安全方法携带）
+    const csrfToken = getCsrfTokenFromCookie();
+    if (csrfToken) {
+      config.headers['X-CSRFToken'] = csrfToken;
+    }
+
     // 确保 Content-Type 为 application/json（可根据需要调整）
     if (!config.headers['Content-Type']) {
       config.headers['Content-Type'] = 'application/json';
@@ -56,16 +80,18 @@ service.interceptors.response.use(
     // 处理 HTTP 403 禁止访问错误（CSRF 校验失败等）
     if (response?.status === 403) {
       const errorMsg = response.data?.detail || '权限不足，禁止访问';
-      ElMessage.error(errorMsg);
-      // 如果是 CSRF 失败，可以提示用户刷新页面
+      // 如果是 CSRF 失败，提供更明确的提示
       if (errorMsg.includes('CSRF')) {
-        console.warn('CSRF 校验失败，建议检查 token 或刷新页面');
+        ElMessage.error('CSRF 校验失败，请刷新页面后重试');
+        console.warn('CSRF 校验失败，可能原因：1. Cookie 未正确设置 2. Token 已过期 3. 跨域配置问题');
+      } else {
+        ElMessage.error(errorMsg);
       }
+    } else {
+      // 其他错误统一处理
+      const errorMsg = response?.data?.detail || error.message || '请求失败，请检查网络或后端服务';
+      ElMessage.error(errorMsg);
     }
-
-    // 其他错误统一处理
-    const errorMsg = response?.data?.detail || error.message || '请求失败，请检查网络或后端服务';
-    ElMessage.error(errorMsg);
 
     // 返回 reject 让调用方可以继续处理
     return Promise.reject(error);
