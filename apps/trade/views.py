@@ -14,6 +14,28 @@ from goods.models import Product
 from .serializers import ShoppingCartSerializer, ShoppingCartDetailSerializer, OrderSerializer, OrderDetailSerializer, OrderAddressSerializer
 from .tasks import close_order_task  # 导入异步任务
 import time
+import random
+
+
+# ============================================================
+# 缓存配置常量 - 防雪崩与防穿透机制
+# ============================================================
+CACHE_RECENT_ORDERS_KEY = "dashboard:recent_orders"
+CACHE_RECENT_ORDERS_BASE_TTL = 60  # 基础缓存时间：1分钟（订单变化频繁）
+CACHE_RECENT_ORDERS_RANDOM_OFFSET = 30  # 随机偏移：0~30秒
+
+
+def get_recent_orders_randomized_ttl():
+    """
+    获取带随机偏移的最近订单缓存时间，防止缓存雪崩
+    返回 60~90 秒之间的随机值
+    """
+    return CACHE_RECENT_ORDERS_BASE_TTL + random.randint(0, CACHE_RECENT_ORDERS_RANDOM_OFFSET)
+
+
+def clear_recent_orders_cache():
+    """清除最近订单缓存"""
+    cache.delete(CACHE_RECENT_ORDERS_KEY)
 
 # 高并发控制可选方案：Redis分布式锁
 # 如果需要跨进程/跨服务器并发控制，可以取消以下注释并安装redis和redis-lock库
@@ -124,6 +146,9 @@ class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
         # 7. 【异步任务应用】：下单后开启一个 30 分钟后执行的延时任务，检查支付状态
         # 如果 30 分钟后未支付，close_order_task 将自动关闭该订单
         close_order_task.apply_async(args=[order.id], countdown=30 * 60)
+
+        # 8. 【缓存失效】清除最近订单缓存
+        clear_recent_orders_cache()
 
     def destroy(self, request, *args, **kwargs):
         """软删除订单：将 is_delete 标记为 True，而非物理删除"""
@@ -249,6 +274,9 @@ class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
                 order.pay_time = timezone.now()
                 order.save()
 
+                # 【缓存失效】清除最近订单缓存
+                clear_recent_orders_cache()
+
                 return Response({
                     "message": "支付成功",
                     "order_sn": order.order_sn,
@@ -334,6 +362,9 @@ class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
                 order.pay_status = "TRADE_CLOSED"
                 order.save()
 
+                # 【缓存失效】清除最近订单缓存
+                clear_recent_orders_cache()
+
                 return Response({
                     "message": "订单已取消",
                     "order_sn": order.order_sn,
@@ -398,6 +429,9 @@ class OrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Crea
                 order.pay_status = "TRADE_SUCCESS"
                 order.pay_time = timezone.now()
                 order.save()
+
+                # 【缓存失效】清除最近订单缓存
+                clear_recent_orders_cache()
 
                 return Response({
                     "message": "订单标记为已支付成功",
@@ -502,13 +536,18 @@ class DashboardRecentOrdersView(views.APIView):
     仪表盘最近订单接口
     返回最新的5条订单记录，包含订单号、金额、状态和下单时间
     优化：使用only()限制查询字段，减少数据库负担
+    缓存：引入 Redis 缓存，TTL 60~90秒（防雪崩随机偏移）
     """
     permission_classes = (IsAuthenticated,)
     authentication_classes = (JWTAuthentication,)
 
     def get(self, request):
-        # 使用only()限制查询字段，减少数据库负担
-        # 结合select_related('user')获取用户名，避免N+1查询
+        # 尝试从缓存获取数据
+        cached_data = cache.get(CACHE_RECENT_ORDERS_KEY)
+        if cached_data is not None:
+            return Response(cached_data)
+
+        # 缓存未命中，查询数据库
         recent_orders = OrderInfo.objects.filter(
             is_delete=False
         ).select_related('user').only(
@@ -528,5 +567,9 @@ class DashboardRecentOrdersView(views.APIView):
                 'status': status_display,
                 'create_time': order.add_time.strftime('%Y-%m-%d %H:%M') if order.add_time else ''
             })
+
+        # 防雪崩：使用随机偏移的 TTL
+        ttl = get_recent_orders_randomized_ttl()
+        cache.set(CACHE_RECENT_ORDERS_KEY, data, timeout=ttl)
 
         return Response(data)
