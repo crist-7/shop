@@ -168,28 +168,33 @@ const activeCategoryId = ref<number | null>(null);
 const placeholderImage = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNDAiIGhlaWdodD0iMjQwIiB2aWV3Qm94PSIwIDAgMjQwIDI0MCI+PHJlY3Qgd2lkdGg9IjI0MCIgaGVpZ2h0PSIyNDAiIGZpbGw9IiNmNWY1ZjUiLz48dGV4dCB4PSIxMjAiIHk9IjEyMCIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2NjYyI+5Yqg5a+R5LitPC90ZXh0Pjwvc3ZnPg==';
 
 /**
- * 优化后的数据获取方法
- * 使用 Promise.all 并行请求无依赖的 API
+ * 【性能优化】完全并行请求所有首页 API
+ * 原问题：fetchGoods 被阻塞，等待前两个接口完成才执行
+ * 优化后：三个 API 完全并行，TTFB = max(t1, t2, t3)
  */
 const fetchAllData = async () => {
   loading.value = true;
   try {
-    // 【性能优化】并行请求三个无依赖关系的 API
-    // 原代码是串行请求，TTFB = t1 + t2 + t3
-    // 优化后并行请求，TTFB = max(t1, t2, t3)
-    const [catRes, bannerRes] = await parallelRequest([
-      () => getCategoryList(),
-      () => getBannerList(),
+    // 【核心优化】三个无依赖关系的 API 完全并行请求
+    // Promise.all 会在所有 Promise 完成后才返回
+    const [catRes, bannerRes, goodsRes] = await Promise.all([
+      getCategoryList().catch(err => { console.error('分类接口失败:', err); return null; }),
+      getBannerList().catch(err => { console.error('轮播图接口失败:', err); return null; }),
+      getGoodsList({}).catch(err => { console.error('商品接口失败:', err); return null; }),
     ]);
 
-    // 处理分类数据
-    categoryList.value = (catRes as any).results ? (catRes as any).results : catRes as any[];
+    // 各自处理数据，互不阻塞
+    if (catRes) {
+      categoryList.value = (catRes as any).results ? (catRes as any).results : catRes as any[];
+    }
 
-    // 处理轮播图数据
-    bannerList.value = (bannerRes as any).results ? (bannerRes as any).results : bannerRes as any[];
+    if (bannerRes) {
+      bannerList.value = (bannerRes as any).results ? (bannerRes as any).results : bannerRes as any[];
+    }
 
-    // 获取商品（依赖分类数据展示，但不依赖分类请求）
-    await fetchGoods();
+    if (goodsRes) {
+      goodsList.value = (goodsRes as any).results ? (goodsRes as any).results : (goodsRes || []);
+    }
   } catch (error) {
     console.error('数据加载失败', error);
   } finally {

@@ -85,6 +85,8 @@ services:
       - ./media:/app/media
       - ./apps:/app/apps
       - ./Mall_Backend:/app/Mall_Backend
+      # 【新增】静态文件卷，用于收集 Django admin 等静态资源
+      - static_files:/app/static
     networks:
       - shop-network
     command: >
@@ -93,6 +95,7 @@ services:
         sleep 10 &&
         pip install celery -i https://pypi.tuna.tsinghua.edu.cn/simple &&
         python manage.py migrate &&
+        python manage.py collectstatic --noinput &&
         exec gunicorn --bind 0.0.0.0:8000 --workers 3 Mall_Backend.wsgi:application
       "
 
@@ -112,6 +115,11 @@ services:
     # 使用自定义 Nginx 配置
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # 【核心】挂载后端 media 目录，实现动静分离
+      # Nginx 直接提供媒体文件服务，无需经过 Django
+      - ./media:/app/media:ro
+      # Django 静态文件（admin 后台 CSS/JS 等）
+      - static_files:/app/static:ro
 
   # Celery 工作者（可选，如果需要后台任务）
   # celery-worker:
@@ -167,4 +175,7 @@ volumes:
   redis_data:
     driver: local
   es_data:
+    driver: local
+  # 【新增】Django 静态文件卷，用于 Nginx 动静分离
+  static_files:
     driver: local
