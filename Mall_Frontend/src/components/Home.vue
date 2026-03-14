@@ -72,7 +72,8 @@
             style="padding: 0; cursor: pointer;"
             @click="router.push(`/goods/${item.goods}`)"
           >
-            <img :src="item.image" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" />
+            <!-- 轮播图也使用懒加载 -->
+            <img v-lazy="item.image" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" />
           </div>
         </el-carousel-item>
       </el-carousel>
@@ -116,7 +117,13 @@
             style="cursor: pointer"
           >
             <div class="image-wrapper">
-              <img v-if="item.goods_front_image" :src="item.goods_front_image" class="image"/>
+              <!-- 使用懒加载指令 -->
+              <img
+                v-if="item.goods_front_image"
+                v-lazy="item.goods_front_image"
+                class="image"
+                :data-lazy-placeholder="placeholderImage"
+              />
               <div v-else class="image-placeholder">暂无图片</div>
             </div>
             <div class="card-content">
@@ -141,9 +148,10 @@ import { useRouter } from 'vue-router';
 import { Search } from '@element-plus/icons-vue';
 import { useUserStore } from '../store/user';
 import { useCartStore } from '../store/cart';
-import { getGoodsList, getCategoryList, getBannerList } from '../api/goods'; // 确保路径正确
+import { getGoodsList, getCategoryList, getBannerList } from '../api/goods';
 import CartDrawer from './CartDrawer.vue';
 import Skeleton from './Skeleton.vue';
+import { parallelRequest } from '../utils/parallel';
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -156,19 +164,31 @@ const bannerList = ref<any[]>([]);
 const searchKeyword = ref('');
 const activeCategoryId = ref<number | null>(null);
 
-// 拉取所有数据
+// 占位图（极小的 base64 图片）
+const placeholderImage = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNDAiIGhlaWdodD0iMjQwIiB2aWV3Qm94PSIwIDAgMjQwIDI0MCI+PHJlY3Qgd2lkdGg9IjI0MCIgaGVpZ2h0PSIyNDAiIGZpbGw9IiNmNWY1ZjUiLz48dGV4dCB4PSIxMjAiIHk9IjEyMCIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2NjYyI+5Yqg5a+R5LitPC90ZXh0Pjwvc3ZnPg==';
+
+/**
+ * 优化后的数据获取方法
+ * 使用 Promise.all 并行请求无依赖的 API
+ */
 const fetchAllData = async () => {
   loading.value = true;
   try {
-    // 1. 获取分类
-    const catRes: any = await getCategoryList();
-    categoryList.value = catRes.results ? catRes.results : catRes;
+    // 【性能优化】并行请求三个无依赖关系的 API
+    // 原代码是串行请求，TTFB = t1 + t2 + t3
+    // 优化后并行请求，TTFB = max(t1, t2, t3)
+    const [catRes, bannerRes] = await parallelRequest([
+      () => getCategoryList(),
+      () => getBannerList(),
+    ]);
 
-    // 2. 获取轮播图
-    const bannerRes: any = await getBannerList();
-    bannerList.value = bannerRes.results ? bannerRes.results : bannerRes;
+    // 处理分类数据
+    categoryList.value = (catRes as any).results ? (catRes as any).results : catRes as any[];
 
-    // 3. 获取商品
+    // 处理轮播图数据
+    bannerList.value = (bannerRes as any).results ? (bannerRes as any).results : bannerRes as any[];
+
+    // 获取商品（依赖分类数据展示，但不依赖分类请求）
     await fetchGoods();
   } catch (error) {
     console.error('数据加载失败', error);
@@ -246,7 +266,7 @@ onMounted(() => {
 .goods-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--space-2xl); margin-top: var(--space-2xl); }
 .goods-card {
   overflow: hidden;
-  border-radius: var(--radius-lg); /* 12px 大圆角 */
+  border-radius: var(--radius-lg);
   background: var(--bg-primary);
   box-shadow: var(--shadow-md);
   transition: all var(--transition-base);
@@ -254,14 +274,14 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   position: relative;
-  border: 1px solid transparent; /* 透明边框保留布局空间 */
-  background-clip: padding-box; /* 确保背景不延伸到边框区域 */
+  border: 1px solid transparent;
+  background-clip: padding-box;
 }
 
 .goods-card:hover {
-  box-shadow: var(--shadow-multi-glow); /* 彩色弥散阴影 */
-  transform: translateY(-12px) scale(1.02); /* 更明显的浮起效果 */
-  border-color: transparent; /* 移除边框 */
+  box-shadow: var(--shadow-multi-glow);
+  transform: translateY(-12px) scale(1.02);
+  border-color: transparent;
 }
 
 .image-wrapper {
@@ -278,8 +298,20 @@ onMounted(() => {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  transition: transform var(--transition-base);
+  transition: transform var(--transition-base), opacity var(--transition-fast);
   padding: var(--space-md);
+}
+
+/* 懒加载状态样式 */
+.image.lazy-loading {
+  opacity: 0.6;
+  filter: blur(10px);
+  transition: opacity var(--transition-base), filter var(--transition-base);
+}
+
+.image.lazy-loaded {
+  opacity: 1;
+  filter: blur(0);
 }
 
 .goods-card:hover .image {
