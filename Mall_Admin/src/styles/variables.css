@@ -98,16 +98,67 @@
   --el-border-radius-round: var(--radius-lg);
 }
 
-/* 深色模式支持 */
+/* ============================================================ */
+/* 手动暗黑模式（通过 .dark 类触发） */
+/* ============================================================ */
+html.dark {
+  --bg-primary: #1f2937;       /* 深灰色卡片背景 */
+  --bg-secondary: #111827;     /* 更深灰色全局背景 */
+  --bg-tertiary: #374151;      /* 中等深灰色边框 */
+  --bg-hover: #4b5563;         /* 悬停深灰色 */
+  --bg-sidebar: #1f2937;       /* 侧边栏深灰背景 */
+  --bg-sidebar-hover: #374151; /* 侧边栏悬停深灰 */
+  --bg-sidebar-active: #3b82f6; /* 侧边栏选中蓝色 */
+
+  --text-primary: #f9fafb;
+  --text-secondary: #e5e7eb;
+  --text-tertiary: #9ca3af;
+  --text-disabled: #6b7280;
+
+  /* 暗黑模式阴影加深 */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 2px 4px -1px rgba(0, 0, 0, 0.4), 0 1px 3px -1px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 4px 8px -2px rgba(0, 0, 0, 0.5), 0 2px 6px -1px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 8px 12px -4px rgba(0, 0, 0, 0.6), 0 4px 8px -2px rgba(0, 0, 0, 0.5);
+  --shadow-hover: 0 8px 16px -4px rgba(0, 0, 0, 0.7), 0 4px 8px -2px rgba(0, 0, 0, 0.6);
+}
+
+/* ============================================================ */
+/* 紧凑模式（通过 .compact 类触发） */
+/* ============================================================ */
+html.compact {
+  /* 缩小间距 */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+  --space-2xl: 24px;
+  --space-3xl: 32px;
+  --space-4xl: 40px;
+  --space-5xl: 48px;
+
+  /* 缩小圆角 */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-2xl: 20px;
+}
+
+/* ============================================================ */
+/* 系统偏好暗黑模式（自动跟随系统设置） */
+/* ============================================================ */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg-primary: #1f2937;       /* 深灰色卡片背景 */
-    --bg-secondary: #111827;     /* 更深灰色全局背景 */
-    --bg-tertiary: #374151;      /* 中等深灰色边框 */
-    --bg-hover: #4b5563;         /* 悬停深灰色 */
-    --bg-sidebar: #1f2937;       /* 侧边栏深灰背景 */
-    --bg-sidebar-hover: #374151; /* 侧边栏悬停深灰 */
-    --bg-sidebar-active: #3b82f6; /* 侧边栏选中蓝色 */
+  html:not(.light) {
+    --bg-primary: #1f2937;
+    --bg-secondary: #111827;
+    --bg-tertiary: #374151;
+    --bg-hover: #4b5563;
+    --bg-sidebar: #1f2937;
+    --bg-sidebar-hover: #374151;
+    --bg-sidebar-active: #3b82f6;
 
     --text-primary: #f9fafb;
     --text-secondary: #e5e7eb;

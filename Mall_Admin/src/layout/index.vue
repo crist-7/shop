@@ -2,7 +2,9 @@
   <el-container class="layout-container">
     <el-aside :width="isCollapse ? '64px' : '220px'" class="aside">
       <div class="logo">
-        <el-icon :color="'var(--primary-color)'" size="24"><Shop /></el-icon>
+        <el-icon :color="'var(--primary-color)'" size="24">
+          <Shop />
+        </el-icon>
         <span v-show="!isCollapse" class="logo-text">星辰商城后台</span>
       </div>
 
@@ -20,7 +22,7 @@
           <template #title>控制台</template>
         </el-menu-item>
 
-        <!-- 商品管理菜单 (里面包含3个子菜单) -->
+        <!-- 商品管理菜单 -->
         <el-sub-menu index="1">
           <template #title>
             <el-icon><Goods /></el-icon>
@@ -31,6 +33,7 @@
           <el-menu-item index="/banner">轮播图管理</el-menu-item>
         </el-sub-menu>
 
+        <!-- 订单管理菜单 -->
         <el-sub-menu index="2">
           <template #title>
             <el-icon><List /></el-icon>
@@ -61,11 +64,11 @@
         <div class="header-right">
           <el-dropdown trigger="click" @command="handleCommand">
             <span class="user-info">
-              <!-- 使用本地 Icon 替代外部 CDN 头像 避免网络延迟 -->
               <el-avatar :size="30" class="avatar-icon">
                 <el-icon :size="18"><User /></el-icon>
               </el-avatar>
-              <span style="margin-left: 8px">Admin</span>
+              <!-- 显示从后端获取的真实用户名 -->
+              <span style="margin-left: 8px">{{ userInfo?.username || 'Admin' }}</span>
               <el-icon class="el-icon--right"><ArrowDown /></el-icon>
             </span>
             <template #dropdown>
@@ -110,16 +113,20 @@
         <el-avatar :size="80" class="avatar-large">
           <el-icon :size="40"><User /></el-icon>
         </el-avatar>
-        <div class="profile-name">Admin</div>
+        <!-- 显示真实用户名 -->
+        <div class="profile-name">{{ userInfo?.username || 'User' }}</div>
       </div>
       <el-descriptions :column="1" border class="profile-descriptions">
-        <el-descriptions-item label="用户名">Admin</el-descriptions-item>
+        <el-descriptions-item label="用户名">{{ userInfo?.username || '-' }}</el-descriptions-item>
+        <!-- 角色：根据 userInfo.role 显示不同标签 -->
         <el-descriptions-item label="角色">
-          <el-tag type="danger" size="small">超级管理员</el-tag>
+          <el-tag v-if="userInfo?.role === 'admin'" type="danger" size="small">超级管理员</el-tag>
+          <el-tag v-else-if="userInfo?.role === 'staff'" type="warning" size="small">工作人员</el-tag>
+          <el-tag v-else type="info" size="small">{{ userInfo?.role || '普通用户' }}</el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="邮箱">admin@startmall.com</el-descriptions-item>
-        <el-descriptions-item label="注册时间">2024-01-01 10:00:00</el-descriptions-item>
-        <el-descriptions-item label="最后登录">2026-03-15 09:30:00</el-descriptions-item>
+        <el-descriptions-item label="邮箱">{{ userInfo?.email || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="注册时间">{{ userInfo?.date_joined || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="最后登录">{{ userInfo?.last_login || '-' }}</el-descriptions-item>
       </el-descriptions>
     </div>
 
@@ -209,10 +216,9 @@
       </div>
       <p class="settings-item-desc">减少界面间距，显示更多内容</p>
 
-      <!-- 分隔线 -->
       <el-divider />
 
-      <!-- 其他设置预留 -->
+      <!-- 消息通知开关 -->
       <div class="settings-item">
         <div class="settings-item-info">
           <el-icon :size="20"><Bell /></el-icon>
@@ -226,6 +232,7 @@
       </div>
       <p class="settings-item-desc">接收系统消息和订单提醒</p>
 
+      <!-- 自动刷新开关 -->
       <div class="settings-item">
         <div class="settings-item-info">
           <el-icon :size="20"><RefreshRight /></el-icon>
@@ -249,7 +256,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessageBox, ElMessage, type FormInstance, type FormRules } from 'element-plus';
 import {
@@ -259,8 +266,14 @@ import {
   Moon,
   Grid,
   Bell,
-  RefreshRight
+  RefreshRight,
+  Shop,
+  Odometer,
+  Goods,
+  List,
+  ArrowDown
 } from '@element-plus/icons-vue';
+import { getUserInfo, changePassword } from '../api/users';
 
 // ============================================================
 // 侧边栏折叠状态
@@ -273,13 +286,67 @@ const toggleCollapse = () => {
 };
 
 // ============================================================
+// 用户信息（从后端获取）
+// ============================================================
+interface UserInfo {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+  date_joined: string;
+  last_login: string;
+}
+
+// 使用 null 作为初始值，便于判断是否已加载
+const userInfo = ref<UserInfo | null>(null);
+
+// ============================================================
+// 数据初始化（页面加载时执行）
+// ============================================================
+const initData = async () => {
+  // 1. 获取当前用户信息
+  try {
+    const res = await getUserInfo();
+    // request.ts 响应拦截器已返回 response.data，所以直接赋值
+    userInfo.value = res;
+  } catch (error) {
+    console.error('获取用户信息失败:', error);
+  }
+
+  // 2. 从 localStorage 恢复系统设置
+  const savedSettings = localStorage.getItem('admin_settings');
+  if (savedSettings) {
+    try {
+      const parsed = JSON.parse(savedSettings);
+      Object.assign(settings, parsed);
+
+      // 根据读取到的状态，立即为 HTML 根元素添加对应的类名
+      // 这样刷新页面后主题状态不会丢失
+      if (settings.darkMode) {
+        document.documentElement.classList.add('dark');
+      }
+      if (settings.compactMode) {
+        document.documentElement.classList.add('compact');
+      }
+    } catch (e) {
+      console.error('解析本地设置失败:', e);
+    }
+  }
+};
+
+// 组件挂载时执行初始化
+onMounted(() => {
+  initData();
+});
+
+// ============================================================
 // 个人中心弹窗相关
 // ============================================================
 const profileDialogVisible = ref(false);
 const passwordLoading = ref(false);
 const passwordFormRef = ref<FormInstance>();
 
-// 修改密码表单数据
+// 修改密码表单数据（前端使用驼峰命名）
 const passwordForm = reactive({
   oldPassword: '',
   newPassword: '',
@@ -309,7 +376,7 @@ const passwordRules: FormRules = {
   ],
 };
 
-// 提交修改密码
+// 提交修改密码（调用真实 API）
 const handlePasswordSubmit = async () => {
   if (!passwordFormRef.value) return;
 
@@ -317,16 +384,29 @@ const handlePasswordSubmit = async () => {
     if (valid) {
       passwordLoading.value = true;
       try {
-        // 模拟异步请求
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        ElMessage.success('密码修改成功');
+        // 调用真实 API，将驼峰字段映射为下划线字段
+        await changePassword({
+          old_password: passwordForm.oldPassword,
+          new_password: passwordForm.newPassword,
+          confirm_password: passwordForm.confirmPassword,
+        });
+
+        ElMessage.success('密码修改成功，请重新登录');
         profileDialogVisible.value = false;
+
         // 清空表单
         passwordForm.oldPassword = '';
         passwordForm.newPassword = '';
         passwordForm.confirmPassword = '';
-      } catch (error) {
-        ElMessage.error('密码修改失败');
+
+        // 密码修改成功后强制退出，让用户重新登录
+        setTimeout(() => {
+          handleLogout();
+        }, 1000);
+      } catch (error: any) {
+        // 错误已在 request.ts 拦截器中统一处理并显示
+        // 这里只需要记录日志，无需重复显示错误信息
+        console.error('密码修改失败:', error);
       } finally {
         passwordLoading.value = false;
       }
@@ -349,7 +429,6 @@ const settings = reactive({
 
 // 暗黑模式切换处理
 const handleDarkModeChange = (value: boolean) => {
-  // 通过修改 HTML 标签的 class 来切换主题
   if (value) {
     document.documentElement.classList.add('dark');
     ElMessage.info('暗黑模式已开启');
@@ -376,14 +455,18 @@ const resetSettings = () => {
   settings.compactMode = false;
   settings.notification = true;
   settings.autoRefresh = false;
-  // 同时移除相关 CSS 类
+
+  // 移除相关 CSS 类
   document.documentElement.classList.remove('dark', 'compact');
+
+  // 清除 localStorage 中的设置
+  localStorage.removeItem('admin_settings');
+
   ElMessage.success('已恢复默认设置');
 };
 
-// 保存设置（可扩展为持久化到 localStorage 或后端）
+// 保存设置到 localStorage
 const saveSettings = () => {
-  // 持久化到 localStorage
   localStorage.setItem('admin_settings', JSON.stringify(settings));
   ElMessage.success('设置已保存');
 };

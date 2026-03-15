@@ -73,8 +73,8 @@ service.interceptors.response.use(
         window.location.href = '/login';
       }, 1500);
 
-      // 返回一个 resolved Promise 避免后续错误处理
-      return Promise.resolve({});
+      // 必须返回 reject，否则调用方会认为请求成功
+      return Promise.reject(error);
     }
 
     // 处理 HTTP 403 禁止访问错误（CSRF 校验失败等）
@@ -87,6 +87,32 @@ service.interceptors.response.use(
       } else {
         ElMessage.error(errorMsg);
       }
+    } else if (response?.status === 400) {
+      // 处理 400 错误（DRF 验证错误）
+      // DRF 返回的错误格式可能是：
+      // 1. {"field": ["错误信息"]}
+      // 2. {"non_field_errors": ["错误信息"]}
+      // 3. {"detail": "错误信息"}
+      const data = response.data;
+      let errorMsg = '请求参数错误';
+
+      if (data?.detail) {
+        errorMsg = data.detail;
+      } else if (data?.non_field_errors) {
+        errorMsg = data.non_field_errors[0];
+      } else {
+        // 遍历所有字段，获取第一个错误信息
+        for (const key in data) {
+          if (Array.isArray(data[key]) && data[key].length > 0) {
+            errorMsg = data[key][0];
+            break;
+          } else if (typeof data[key] === 'string') {
+            errorMsg = data[key];
+            break;
+          }
+        }
+      }
+      ElMessage.error(errorMsg);
     } else {
       // 其他错误统一处理
       const errorMsg = response?.data?.detail || error.message || '请求失败，请检查网络或后端服务';
