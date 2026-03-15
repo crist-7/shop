@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 
 # ============================================================
@@ -8,17 +8,35 @@ set -e
 
 echo "Waiting for database to be ready..."
 
-# 磉待数据库就绪（最多等待 30 秒）
-for i in {1..30}; do
-    if mysqladmin ping -h "${DATABASE_HOST}" --silent 2>/dev/null; then
-        echo "Database is ready!"
-        break
-    fi
-    sleep 1
-done
+# 等待数据库就绪（最多等待 60 秒），使用 Python 检查连接
+python -c "
+import os
+import time
+import socket
+
+host = os.environ.get('DATABASE_HOST', 'db')
+port = int(os.environ.get('DATABASE_PORT', 3306))
+
+for i in range(60):
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(2)
+        result = sock.connect_ex((host, port))
+        sock.close()
+        if result == 0:
+            print('Database is ready!')
+            exit(0)
+    except Exception as e:
+        pass
+    time.sleep(1)
+    print(f'Waiting for database... ({i+1}/60)')
+
+print('Error: Database is not ready after 60 seconds')
+exit(1)
+"
 
 if [ $? -ne 0 ]; then
-    echo "Error: Database is not ready after 30 seconds"
+    echo "Failed to connect to database"
     exit 1
 fi
 

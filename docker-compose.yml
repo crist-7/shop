@@ -88,6 +88,8 @@ services:
       - ./Mall_Backend:/app/Mall_Backend
       # 【新增】静态文件卷，用于收集 Django admin 等静态资源
       - static_files:/app/static
+      # 【临时】挂载启动脚本，便于开发调试
+      - ./docker/scripts/start.sh:/app/docker/scripts/start.sh
     networks:
       - shop-network
     # 使用生产级启动脚本（包含数据库等待、迁移、静态收集、Gunicorn 启动）
