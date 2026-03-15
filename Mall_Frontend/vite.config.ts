@@ -56,10 +56,12 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       open: true,
       // 代理配置：解决开发环境跨域问题
+      // 将 /api 前缀的请求转发到 Django 后端
       proxy: {
         '/api': {
           target: 'http://127.0.0.1:8000',
           changeOrigin: true,
+          // rewrite: (path) => path.replace(/^\/api/, ''),  // 如后端不带 /api 前缀则取消注释
         }
       }
     },

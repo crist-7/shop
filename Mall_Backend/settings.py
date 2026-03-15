@@ -153,13 +153,17 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 #                  新增业务配置                      #
 # ================================================= #
 
-# 1. 跨域设置 (允许前端 8080/5173 端口访问)
-CORS_ALLOWED_ORIGINS = [
-    "http://127.0.0.1:5173",
-    "http://localhost:5173",
-    "http://localhost:8080",
-    "http://localhost:5174",  # 【新增这一行】允许你的当前前端端口访问
-]
+# 1. 跨域设置 (允许前端开发端口访问)
+# 开发环境允许所有来源，生产环境应改为 CORS_ALLOWED_ORIGINS 白名单
+CORS_ALLOW_ALL_ORIGINS = True  # 开发环境便捷配置
+# CORS_ALLOWED_ORIGINS = [
+#     "http://127.0.0.1:5173",
+#     "http://localhost:5173",
+#     "http://localhost:8080",
+#     "http://localhost:5174",
+#     "http://127.0.0.1:5174",
+# ]
+CORS_ALLOW_CREDENTIALS = True  # 允许携带 Cookie（CSRF 需要）
 
 # 安全增强：CORS 配置
 CORS_ALLOW_CREDENTIALS = True  # 允许携带 Cookie

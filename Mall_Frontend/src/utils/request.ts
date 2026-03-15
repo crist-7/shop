@@ -20,7 +20,7 @@ function getCsrfTokenFromCookie(): string | null {
 
 // 1. 创建 axios 实例
 const service = axios.create({
-    baseURL: 'http://127.0.0.1:8000/api', // 指向你的 Django 后端 API 地址
+    baseURL: '/api', // 【修改】使用相对路径，由 Vite proxy 代理到后端
     timeout: 5000, // 请求超时时间
     withCredentials: true, // 跨域请求时携带 Cookie（CSRF Token 需要）
 });
