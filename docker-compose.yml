@@ -19,7 +19,8 @@ services:
       - shop-network
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      timeout: 20s
+      interval: 10s
+      timeout: 5s
       retries: 10
 
   # Redis 服务
@@ -89,15 +90,8 @@ services:
       - static_files:/app/static
     networks:
       - shop-network
-    command: >
-      sh -c "
-        echo '等待数据库就绪...' &&
-        sleep 10 &&
-        pip install celery -i https://pypi.tuna.tsinghua.edu.cn/simple &&
-        python manage.py migrate &&
-        python manage.py collectstatic --noinput &&
-        exec gunicorn --bind 0.0.0.0:8000 --workers 3 Mall_Backend.wsgi:application
-      "
+    # 使用生产级启动脚本（包含数据库等待、迁移、静态收集、Gunicorn 启动）
+    command: ["/app/docker/scripts/start.sh"]
 
   # 前端 Vue 服务
   frontend:

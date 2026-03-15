@@ -11,3 +11,5 @@ django-elasticsearch-dsl-drf>=0.22.0
 django-redis>=5.3.0
 redis>=4.5.0
 python-redis-lock>=4.0.0
+# 生产环境 WSGI 服务器
+gunicorn>=21.0.0
