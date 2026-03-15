@@ -230,7 +230,7 @@ USE_TZ = False # 建议关闭 UTC，直接存本地时间
 AUTH_USER_MODEL = 'users.UserProfile'
 # 【媒体文件配置已在前面设置，这里不需要重复】
 # Elasticsearch 配置
-ELASTICSEARCH_HOSTS = os.environ.get('ELASTICSEARCH_HOST', 'http://elasticsearch:9200')
+ELASTICSEARCH_HOSTS = os.environ.get('ELASTICSEARCH_HOST', 'http://127.0.0.1:9200')
 # 将主机字符串转换为列表（支持逗号分隔的多个主机）
 if isinstance(ELASTICSEARCH_HOSTS, str):
     # 分割逗号分隔的主机列表，并去除空格

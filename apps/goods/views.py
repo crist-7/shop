@@ -7,6 +7,7 @@ from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
 from django.core.cache import cache
 from django.http import Http404
+from django.db.models import Q
 
 from .models import Product, Category, Banner
 from .serializers import ProductSerializer, CategorySerializer, BannerSerializer
@@ -217,6 +218,8 @@ class ProductViewSet(viewsets.ModelViewSet):
         """
         重写过滤方法，当有search参数时使用Elasticsearch，否则使用原MySQL查询
         支持与分类过滤的组合查询，使用 IK 中文分词器
+
+        容灾机制：当 Elasticsearch 不可用时，自动降级到 MySQL LIKE 查询
         """
         search_query = self.request.query_params.get('search')
 
@@ -228,25 +231,71 @@ class ProductViewSet(viewsets.ModelViewSet):
         # 注意：super().filter_queryset会使用当前filter_backends（DjangoFilterBackend, OrderingFilter）
         filtered_qs = super().filter_queryset(queryset)
 
-        # 使用 Elasticsearch 进行中文分词搜索
-        # 注意：不使用 fuzziness，因为中文分词场景下模糊匹配效果不佳
-        es_search = ProductDocument.search().query(
-            'multi_match',
-            query=search_query,
-            fields=['name^3', 'goods_brief'],  # name 字段权重更高，提升相关性
-            type='best_fields',                # 最佳字段匹配模式
-        )
-        es_results = es_search.execute()
+        # ============================================================
+        # Elasticsearch 搜索（带容灾降级）
+        # ============================================================
 
-        # 获取匹配的商品ID列表
-        product_ids = [hit.id for hit in es_results]
+        # 提取智能分词搜索为独立函数，供 ES 失败或无结果时复用
+        def fallback_mysql_search(base_qs, search_term):
+            """
+            MySQL 降级搜索：支持空格分词的智能搜索
+            例如："联想 拯救者" → 商品名/简介必须同时包含 "联想" 和 "拯救者"
+            """
+            keywords = search_term.split()
 
-        # 如果Elasticsearch没有结果，返回空查询集
-        if not product_ids:
-            return filtered_qs.none()
+            # 单关键词：简单的 OR 查询
+            if len(keywords) == 1:
+                keyword = keywords[0]
+                return base_qs.filter(
+                    Q(name__icontains=keyword) |
+                    Q(goods_brief__icontains=keyword)
+                )
 
-        # 取交集：既符合分类过滤，又符合ES搜索结果的商品
-        return filtered_qs.filter(id__in=product_ids)
+            # 多关键词：每个关键词都必须在 name 或 goods_brief 中出现
+            query = Q()
+            for keyword in keywords:
+                keyword_condition = Q(name__icontains=keyword) | Q(goods_brief__icontains=keyword)
+                query &= keyword_condition
+
+            return base_qs.filter(query)
+
+        try:
+            # 使用 Elasticsearch 进行中文分词搜索
+            es_search = ProductDocument.search().query(
+                'multi_match',
+                query=search_query,
+                fields=['name^3', 'goods_brief'],
+                type='best_fields',
+            )
+            es_results = es_search.execute()
+
+            # 获取匹配的商品ID列表
+            product_ids = [hit.id for hit in es_results]
+
+            # ES 有结果：使用 ES 搜索结果
+            if product_ids:
+                return filtered_qs.filter(id__in=product_ids)
+
+            # ============================================================
+            # ES 返回空结果：降级到 MySQL 搜索
+            # 场景：ES 索引为空、索引未同步、或分词器不匹配
+            # ============================================================
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"Elasticsearch 返回空结果，降级到 MySQL 搜索: {search_query}")
+
+            return fallback_mysql_search(filtered_qs, search_query)
+
+        except Exception as e:
+            # ============================================================
+            # ES 异常：降级到 MySQL 搜索
+            # 场景：ES 服务宕机、网络不通、配置错误
+            # ============================================================
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Elasticsearch 搜索异常，降级到 MySQL 查询: {str(e)}")
+
+            return fallback_mysql_search(filtered_qs, search_query)
 
 
 class CategoryViewSet(viewsets.ModelViewSet):

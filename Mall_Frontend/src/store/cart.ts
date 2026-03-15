@@ -7,20 +7,40 @@ export const useCartStore = defineStore('cart', {
     state: () => ({
         cartList: [] as any[], // 购物车数据
         drawerVisible: false,  // 控制购物车抽屉的开关
+        selectedIds: [] as number[], // 选中的购物车项ID
     }),
     getters: {
         // 购物车总数量
         cartCount: (state) => state.cartList.length,
-        // 购物车总金额
+        // 购物车总金额（所有商品）
         totalPrice: (state) => {
             let sum = 0;
             state.cartList.forEach((item) => {
-                // 后端返回结构: item.goods.shop_price
                 if (item.goods && item.goods.shop_price) {
                     sum += item.nums * parseFloat(item.goods.shop_price);
                 }
             });
             return sum.toFixed(2);
+        },
+        // 选中的商品列表
+        selectedItems: (state) => {
+            return state.cartList.filter(item => state.selectedIds.includes(item.id));
+        },
+        // 选中的商品数量
+        selectedCount: (state) => state.selectedIds.length,
+        // 选中商品的总金额
+        selectedTotalPrice: (state) => {
+            let sum = 0;
+            state.cartList.forEach((item) => {
+                if (state.selectedIds.includes(item.id) && item.goods && item.goods.shop_price) {
+                    sum += item.nums * parseFloat(item.goods.shop_price);
+                }
+            });
+            return sum.toFixed(2);
+        },
+        // 是否全选
+        isAllSelected: (state) => {
+            return state.cartList.length > 0 && state.selectedIds.length === state.cartList.length;
         }
     },
     actions: {
@@ -87,6 +107,31 @@ export const useCartStore = defineStore('cart', {
         // 清空购物车（用户登出时调用）
         clearCart() {
             this.cartList = [];
+            this.selectedIds = [];
+        },
+
+        // 切换选中状态
+        toggleSelect(id: number) {
+            const index = this.selectedIds.indexOf(id);
+            if (index > -1) {
+                this.selectedIds.splice(index, 1);
+            } else {
+                this.selectedIds.push(id);
+            }
+        },
+
+        // 全选/取消全选
+        toggleSelectAll() {
+            if (this.isAllSelected) {
+                this.selectedIds = [];
+            } else {
+                this.selectedIds = this.cartList.map(item => item.id);
+            }
+        },
+
+        // 获取选中的购物车项（用于提交订单）
+        getSelectedCartItems() {
+            return this.cartList.filter(item => this.selectedIds.includes(item.id));
         },
 
         // 初始化购物车（应用启动或用户登录时调用）

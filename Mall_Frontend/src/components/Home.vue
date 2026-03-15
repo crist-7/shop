@@ -1,79 +1,15 @@
 <template>
   <!--
-    Home.vue - 星辰商城首页（顶级电商 UI 标准）
+    Home.vue - 星辰商城首页
 
     功能特性：
-    1. 吸顶导航（毛玻璃效果）
+    1. 分类导航栏
     2. 左侧分类菜单 + 右侧沉浸式轮播图
     3. 商品卡片高级动画效果
     4. CSS Grid 响应式布局
+    5. 支持全局搜索关键词过滤
   -->
   <div class="mall-layout">
-    <!-- ============================================================ -->
-    <!-- 吸顶头部导航 -->
-    <!-- ============================================================ -->
-    <header class="mall-header" :class="{ 'is-sticky': isHeaderSticky }">
-      <div class="header-inner">
-        <!-- Logo 区域 -->
-        <div class="logo" @click="router.push('/')">
-          <span class="logo-icon">🛍️</span>
-          <span class="logo-text">星辰商城</span>
-        </div>
-
-        <!-- 搜索栏 -->
-        <div class="search-bar">
-          <el-input
-            v-model="searchKeyword"
-            placeholder="搜索手机、电脑、家电..."
-            class="search-input"
-            size="large"
-            clearable
-            @keyup.enter="handleSearch"
-            @clear="handleSearch"
-          >
-            <template #append>
-              <el-button type="primary" class="search-btn" @click="handleSearch">
-                <el-icon><Search /></el-icon> 搜索
-              </el-button>
-            </template>
-          </el-input>
-        </div>
-
-        <!-- 用户操作区 -->
-        <div class="user-actions">
-          <template v-if="userStore.isLoggedIn">
-            <!-- 购物车徽标 -->
-            <el-badge
-              :value="cartStore.cartCount"
-              class="cart-badge"
-              :hidden="cartStore.cartCount === 0"
-            >
-              <el-button class="cart-btn" plain @click="cartStore.toggleDrawer(true)">
-                <el-icon><ShoppingCart /></el-icon>
-                <span class="cart-text">购物车</span>
-              </el-button>
-            </el-badge>
-            <!-- 用户欢迎语 -->
-            <div class="user-info">
-              <el-avatar :size="32" class="user-avatar">
-                {{ userStore.username?.charAt(0)?.toUpperCase() }}
-              </el-avatar>
-              <span class="user-greeting">{{ userStore.username }}</span>
-            </div>
-            <el-button link class="logout-btn" @click="handleLogout">退出</el-button>
-          </template>
-          <template v-else>
-            <router-link to="/login">
-              <el-button type="primary" plain class="login-btn">登录</el-button>
-            </router-link>
-            <router-link to="/register">
-              <el-button class="register-btn">注册</el-button>
-            </router-link>
-          </template>
-        </div>
-      </div>
-    </header>
-
     <!-- ============================================================ -->
     <!-- 分类导航栏 -->
     <!-- ============================================================ -->
@@ -81,11 +17,11 @@
       <div class="nav-inner">
         <div
           class="nav-item"
-          :class="{ active: activeCategoryId === null }"
+          :class="{ active: activeCategoryId === null && !searchKeywordFromRoute }"
           @click="handleCategoryClick(null)"
         >
           <el-icon><HomeFilled /></el-icon>
-          <span>首页推荐</span>
+          <span>{{ searchKeywordFromRoute ? '搜索结果' : '首页推荐' }}</span>
         </div>
         <div
           v-for="item in categoryList"
@@ -106,7 +42,7 @@
       <!-- ============================================================ -->
       <!-- 沉浸式轮播图区域：左侧分类菜单 + 右侧轮播图 -->
       <!-- ============================================================ -->
-      <section class="hero-section">
+      <section class="hero-section" v-if="!searchKeywordFromRoute">
         <!-- 左侧分类菜单 -->
         <aside class="category-menu">
           <div class="menu-header">
@@ -170,17 +106,28 @@
       </section>
 
       <!-- ============================================================ -->
+      <!-- 搜索结果提示 -->
+      <!-- ============================================================ -->
+      <section class="search-result-hint" v-if="searchKeywordFromRoute">
+        <div class="hint-content">
+          <el-icon :size="24"><Search /></el-icon>
+          <span>搜索 "{{ searchKeywordFromRoute }}" 的结果</span>
+          <el-button text type="primary" @click="clearSearchKeyword">清除搜索</el-button>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
       <!-- 热卖推荐商品区域 -->
       <!-- ============================================================ -->
       <section class="goods-section">
         <div class="section-header">
           <div class="section-title-wrapper">
             <span class="section-icon">✨</span>
-            <h2 class="section-title">热卖推荐</h2>
+            <h2 class="section-title">{{ searchKeywordFromRoute ? '搜索结果' : '热卖推荐' }}</h2>
             <span class="section-subtitle">精选好物，品质保障</span>
           </div>
           <el-button
-            v-if="activeCategoryId !== null || searchKeyword"
+            v-if="activeCategoryId !== null || searchKeywordFromRoute"
             text
             type="primary"
             @click="resetFilters"
@@ -249,15 +196,38 @@
 
         <!-- 空状态 -->
         <div v-if="!loading && goodsList.length === 0" class="empty-state">
-          <el-empty description="暂无相关商品">
-            <el-button type="primary" @click="resetFilters">查看全部商品</el-button>
+          <el-empty>
+            <!-- 自定义图标 -->
+            <template #image>
+              <el-icon :size="80" color="#c0c4cc">
+                <Search v-if="searchKeywordFromRoute" />
+                <ShoppingCart v-else />
+              </el-icon>
+            </template>
+            <!-- 自定义描述 -->
+            <template #description>
+              <div class="empty-description">
+                <p class="empty-title">
+                  {{ searchKeywordFromRoute ? '抱歉，没有找到匹配的商品' : '暂无相关商品' }}
+                </p>
+                <p v-if="searchKeywordFromRoute" class="empty-hint">
+                  <el-icon><InfoFilled /></el-icon>
+                  <span>试试将长词拆分为多个短词，中间用<span class="highlight">空格</span>分隔</span>
+                </p>
+                <p v-if="searchKeywordFromRoute" class="empty-example">
+                  例如：搜索 "联想拯救者" 可尝试 "<span class="highlight">联想 拯救者</span>"
+                </p>
+              </div>
+            </template>
+            <!-- 操作按钮 -->
+            <el-button type="primary" @click="resetFilters">
+              <el-icon><HomeFilled /></el-icon>
+              查看全部商品
+            </el-button>
           </el-empty>
         </div>
       </section>
     </main>
-
-    <!-- 购物车抽屉 -->
-    <CartDrawer />
 
     <!-- 回到顶部按钮 -->
     <el-backtop :bottom="100" :right="40">
@@ -273,11 +243,11 @@
  * Home.vue - 星辰商城首页
  *
  * 技术栈：Vue 3 + TypeScript + Element Plus
- * 特性：Composables 逻辑抽离、响应式布局、高级动画
+ * 特性：Composables 逻辑抽离、响应式布局、高级动画、全局搜索支持
  */
 
-import { ref, onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import {
   Search,
   ShoppingCart,
@@ -288,17 +258,18 @@ import {
   Document,
   RefreshRight,
   Top,
+  InfoFilled,
 } from '@element-plus/icons-vue';
 import { useUserStore } from '../store/user';
 import { useCartStore } from '../store/cart';
 import { useHomeData, type GoodsItem } from '../hooks/useHomeData';
-import CartDrawer from './CartDrawer.vue';
 
 // ============================================================
 // 路由和 Store
 // ============================================================
 
 const router = useRouter();
+const route = useRoute();
 const userStore = useUserStore();
 const cartStore = useCartStore();
 
@@ -315,17 +286,50 @@ const {
   activeCategoryId,
   fetchAllData,
   fetchGoods,
-  handleSearch,
   handleCategoryClick,
   resetFilters,
 } = useHomeData();
 
 // ============================================================
-// 吸顶导航状态
+// 从路由获取搜索关键词
 // ============================================================
 
-/** 头部是否吸顶 */
-const isHeaderSticky = ref(false);
+/** 从 URL query 参数获取的搜索关键词 */
+const searchKeywordFromRoute = computed(() => {
+  return (route.query.keyword as string) || '';
+});
+
+/**
+ * 清除搜索关键词
+ */
+const clearSearchKeyword = () => {
+  router.push('/');
+};
+
+// ============================================================
+// 监听路由参数变化，触发搜索
+// ============================================================
+
+watch(
+  () => route.query.keyword,
+  (newKeyword) => {
+    const keyword = (newKeyword as string) || '';
+    if (keyword) {
+      // 有搜索关键词，调用搜索接口
+      searchKeyword.value = keyword;
+      fetchGoods({ search: keyword });
+    } else {
+      // 无搜索关键词，加载全部数据
+      searchKeyword.value = '';
+      fetchAllData();
+    }
+  },
+  { immediate: true }
+);
+
+// ============================================================
+// 吸顶导航状态
+// ============================================================
 
 /** 导航栏是否吸顶 */
 const isNavSticky = ref(false);
@@ -335,23 +339,12 @@ const isNavSticky = ref(false);
  */
 const handleScroll = () => {
   const scrollY = window.scrollY;
-  // 滚动超过 80px 时头部吸顶
-  isHeaderSticky.value = scrollY > 80;
-  // 滚动超过 160px 时导航栏吸顶
-  isNavSticky.value = scrollY > 160;
+  isNavSticky.value = scrollY > 64;
 };
 
 // ============================================================
 // 用户交互方法
 // ============================================================
-
-/**
- * 退出登录
- */
-const handleLogout = () => {
-  userStore.logout();
-  router.push('/login');
-};
 
 /**
  * 添加商品到购物车
@@ -369,8 +362,14 @@ const addToCart = async (item: GoodsItem) => {
 // ============================================================
 
 onMounted(() => {
-  // 加载首页数据
-  fetchAllData();
+  // 如果有搜索关键词，执行搜索
+  if (searchKeywordFromRoute.value) {
+    searchKeyword.value = searchKeywordFromRoute.value;
+    fetchGoods({ search: searchKeywordFromRoute.value });
+  } else {
+    // 加载首页数据
+    fetchAllData();
+  }
 
   // 如果已登录，获取购物车数据
   if (userStore.isLoggedIn) {
@@ -382,7 +381,6 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  // 移除滚动监听
   window.removeEventListener('scroll', handleScroll);
 });
 </script>
@@ -398,150 +396,12 @@ onUnmounted(() => {
 }
 
 /* ============================================================ */
-/* 吸顶头部导航 */
-/* ============================================================ */
-
-.mall-header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  background: var(--bg-primary);
-  border-bottom: 2px solid var(--primary-color);
-  padding: 0 var(--space-xl);
-  transition: all var(--transition-base);
-}
-
-/* 吸顶状态 - 毛玻璃效果 */
-.mall-header.is-sticky {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: var(--shadow-lg);
-}
-
-.header-inner {
-  max-width: var(--container-xl);
-  margin: 0 auto;
-  height: 80px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-xl);
-}
-
-/* Logo 样式 */
-.logo {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  cursor: pointer;
-  transition: transform var(--transition-fast);
-}
-
-.logo:hover {
-  transform: scale(1.02);
-}
-
-.logo-icon {
-  font-size: 32px;
-}
-
-.logo-text {
-  font-size: 24px;
-  font-weight: 800;
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* 搜索栏 */
-.search-bar {
-  flex: 1;
-  max-width: 560px;
-}
-
-.search-input {
-  border-radius: var(--radius-full) !important;
-  overflow: hidden;
-}
-
-.search-input :deep(.el-input__wrapper) {
-  border-radius: var(--radius-full) 0 0 var(--radius-full) !important;
-  padding-left: 20px;
-  box-shadow: 0 2px 12px rgba(139, 92, 246, 0.1);
-  border: 2px solid transparent;
-  transition: all var(--transition-fast);
-}
-
-.search-input :deep(.el-input__wrapper:focus-within) {
-  border-color: var(--primary-color);
-  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.2);
-}
-
-.search-btn {
-  border-radius: 0 var(--radius-full) var(--radius-full) 0 !important;
-  padding: 0 24px;
-}
-
-/* 用户操作区 */
-.user-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-lg);
-}
-
-.cart-badge :deep(.el-badge__content) {
-  background: var(--danger);
-}
-
-.cart-btn {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  border-radius: var(--radius-full) !important;
-}
-
-.cart-text {
-  display: none;
-}
-
-@media (min-width: 768px) {
-  .cart-text {
-    display: inline;
-  }
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.user-avatar {
-  background: var(--gradient-primary);
-  color: white;
-  font-weight: 600;
-}
-
-.user-greeting {
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.login-btn,
-.register-btn {
-  border-radius: var(--radius-full) !important;
-  padding: 8px 24px;
-}
-
-/* ============================================================ */
 /* 分类导航栏 */
 /* ============================================================ */
 
 .category-nav {
   position: sticky;
-  top: 80px;
+  top: 64px;
   z-index: 99;
   background: var(--bg-primary);
   border-bottom: 1px solid var(--bg-tertiary);
@@ -809,14 +669,28 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
-.entry-highlight {
-  background: var(--gradient-sunset);
-  color: white;
+/* ============================================================ */
+/* 搜索结果提示 */
+/* ============================================================ */
+
+.search-result-hint {
+  margin-bottom: var(--space-xl);
 }
 
-.entry-highlight:hover {
-  color: white;
-  transform: translateY(-4px) scale(1.02);
+.hint-content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.hint-content .el-icon {
+  color: var(--primary-color);
 }
 
 /* ============================================================ */
@@ -1082,6 +956,49 @@ onUnmounted(() => {
   padding: var(--space-5xl) 0;
 }
 
+.empty-description {
+  text-align: center;
+}
+
+.empty-title {
+  font-size: 16px;
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-md) 0;
+}
+
+.empty-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  font-size: 14px;
+  color: var(--text-tertiary);
+  margin: 0 0 var(--space-sm) 0;
+}
+
+.empty-hint .el-icon {
+  color: var(--warning);
+}
+
+.empty-hint .highlight {
+  color: var(--primary-color);
+  font-weight: 600;
+  background: rgba(139, 92, 246, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.empty-example {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+.empty-example .highlight {
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
 /* ============================================================ */
 /* 回到顶部按钮 */
 /* ============================================================ */
@@ -1109,19 +1026,6 @@ onUnmounted(() => {
 /* ============================================================ */
 
 @media (max-width: 640px) {
-  .header-inner {
-    height: 64px;
-    padding: 0 var(--space-md);
-  }
-
-  .logo-text {
-    display: none;
-  }
-
-  .search-bar {
-    max-width: 100%;
-  }
-
   .goods-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: var(--space-md);
