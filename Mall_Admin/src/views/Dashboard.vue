@@ -1,776 +1,812 @@
 <template>
-  <div class="dashboard-container">
-    <!-- 顶部数据卡片 - 玻璃拟态设计 -->
-    <el-row :gutter="20" class="stats-row">
-      <el-col :xs="24" :sm="12" :md="6" :lg="6">
-        <div class="glass-card stats-card sales-card" @click="handleCardClick('sales')">
-          <div class="card-icon">
-            <el-icon><Money /></el-icon>
-          </div>
-          <div class="card-content">
-            <div class="card-title">总销售额</div>
-            <div class="card-value">
-              <el-skeleton :loading="loading" animated :count="1">
-                <template #template>
-                  <el-skeleton-item variant="text" style="height: 42px; width: 120px" />
-                </template>
-                <template #default>
-                  <div class="num">{{ formatCurrency(stats.totalSales) }}</div>
-                </template>
-              </el-skeleton>
-            </div>
-            <div class="card-trend">
-              <span class="trend-up">
-                <el-icon><Top /></el-icon>
-                +12.5%
-              </span>
-              <span class="trend-text">较上周</span>
-            </div>
-          </div>
-        </div>
-      </el-col>
-      <el-col :xs="24" :sm="12" :md="6" :lg="6">
-        <div class="glass-card stats-card orders-card" @click="handleCardClick('orders')">
-          <div class="card-icon">
-            <el-icon><ShoppingCart /></el-icon>
-          </div>
-          <div class="card-content">
-            <div class="card-title">今日订单量</div>
-            <div class="card-value">
-              <el-skeleton :loading="loading" animated :count="1">
-                <template #template>
-                  <el-skeleton-item variant="text" style="height: 42px; width: 80px" />
-                </template>
-                <template #default>
-                  <div class="num">{{ formatNumber(stats.todayOrders) }}</div>
-                </template>
-              </el-skeleton>
-            </div>
-            <div class="card-trend">
-              <span class="trend-up">
-                <el-icon><Top /></el-icon>
-                +8.3%
-              </span>
-              <span class="trend-text">较昨日</span>
-            </div>
-          </div>
-        </div>
-      </el-col>
-      <el-col :xs="24" :sm="12" :md="6" :lg="6">
-        <div class="glass-card stats-card users-card" @click="handleCardClick('users')">
-          <div class="card-icon">
-            <el-icon><User /></el-icon>
-          </div>
-          <div class="card-content">
-            <div class="card-title">待处理订单</div>
-            <div class="card-value">
-              <el-skeleton :loading="loading" animated :count="1">
-                <template #template>
-                  <el-skeleton-item variant="text" style="height: 42px; width: 60px" />
-                </template>
-                <template #default>
-                  <div class="num">{{ formatNumber(stats.pendingOrders) }}</div>
-                </template>
-              </el-skeleton>
-            </div>
-            <div class="card-trend">
-              <span class="trend-up">
-                <el-icon><Top /></el-icon>
-                +15.2%
-              </span>
-              <span class="trend-text">较上周</span>
-            </div>
-          </div>
-        </div>
-      </el-col>
-      <el-col :xs="24" :sm="12" :md="6" :lg="6">
-        <div class="glass-card stats-card visits-card" @click="handleCardClick('visits')">
-          <div class="card-icon">
-            <el-icon><View /></el-icon>
-          </div>
-          <div class="card-content">
-            <div class="card-title">平均订单价值</div>
-            <div class="card-value">
-              <el-skeleton :loading="loading" animated :count="1">
-                <template #template>
-                  <el-skeleton-item variant="text" style="height: 42px; width: 100px" />
-                </template>
-                <template #default>
-                  <div class="num">{{ formatCurrency(stats.averageOrderValue) }}</div>
-                </template>
-              </el-skeleton>
-            </div>
-            <div class="card-trend">
-              <span class="trend-down">
-                <el-icon><Bottom /></el-icon>
-                -3.4%
-              </span>
-              <span class="trend-text">较昨日</span>
-            </div>
-          </div>
-        </div>
-      </el-col>
-    </el-row>
+  <!--
+    Dashboard.vue - 电商后台仪表盘
 
-    <!-- 图表区域 -->
-    <div class="chart-section">
-      <!-- 交易趋势图表 -->
-      <div class="glass-card chart-card">
-        <div class="chart-header">
-          <el-icon><TrendCharts /></el-icon>
-          <span class="chart-title">近七天交易趋势</span>
-          <div class="chart-actions">
-            <el-select v-model="chartRange" size="small" style="width: 120px">
-              <el-option label="最近7天" value="7d" />
-              <el-option label="最近30天" value="30d" />
-              <el-option label="本季度" value="quarter" />
-            </el-select>
-          </div>
+    功能特性：
+    1. 顶部数据卡片（今日销售额、新增用户、订单转化率、待发货订单）
+    2. 双图表布局：左侧折线图 + 右侧环形图
+    3. 底部最新订单动态表格
+    4. 暗黑模式完美适配
+    5. 响应式图表（vueuse useResizeObserver）
+  -->
+  <div class="dashboard-container">
+    <!-- ============================================================ -->
+    <!-- 顶部数据卡片 -->
+    <!-- ============================================================ -->
+    <div class="stats-grid">
+      <!-- 今日销售额 -->
+      <div class="stat-card sales-card">
+        <div class="card-glow"></div>
+        <div class="stat-icon">
+          <el-icon><Money /></el-icon>
         </div>
-        <div class="chart-container">
-          <el-skeleton :loading="chartLoading" animated :rows="5">
-            <template #default>
-              <div ref="chartRef" class="echarts-container"></div>
-            </template>
-          </el-skeleton>
+        <div class="stat-content">
+          <div class="stat-label">今日销售额</div>
+          <div class="stat-value">
+            <span class="currency">¥</span>
+            <span class="number">{{ formatNumber(mockStats.todaySales) }}</span>
+          </div>
+          <div class="stat-footer">
+            <span class="trend up">
+              <el-icon><Top /></el-icon>
+              +12.5%
+            </span>
+            <span class="compare">较昨日</span>
+          </div>
         </div>
       </div>
 
-      <!-- 快捷操作卡片 -->
-      <div class="glass-card quick-actions-card">
-        <div class="chart-header">
-          <el-icon><Operation /></el-icon>
-          <span class="chart-title">快捷操作</span>
+      <!-- 新增用户 -->
+      <div class="stat-card users-card">
+        <div class="card-glow"></div>
+        <div class="stat-icon">
+          <el-icon><UserFilled /></el-icon>
         </div>
-        <div class="quick-actions">
-          <el-button class="quick-action-btn" type="primary" icon="Plus" @click="handleQuickAction('newOrder')">
-            新建订单
-          </el-button>
-          <el-button class="quick-action-btn" type="success" icon="User" @click="handleQuickAction('newUser')">
-            添加用户
-          </el-button>
-          <el-button class="quick-action-btn" type="warning" icon="Goods" @click="handleQuickAction('newProduct')">
-            上架商品
-          </el-button>
-          <el-button class="quick-action-btn" type="info" icon="Promotion" @click="handleQuickAction('promotion')">
-            创建促销
-          </el-button>
+        <div class="stat-content">
+          <div class="stat-label">新增用户</div>
+          <div class="stat-value">
+            <span class="number">{{ formatNumber(mockStats.newUsers) }}</span>
+            <span class="unit">人</span>
+          </div>
+          <div class="stat-footer">
+            <span class="trend up">
+              <el-icon><Top /></el-icon>
+              +8.3%
+            </span>
+            <span class="compare">较昨日</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 订单转化率 -->
+      <div class="stat-card conversion-card">
+        <div class="card-glow"></div>
+        <div class="stat-icon">
+          <el-icon><TrendCharts /></el-icon>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">订单转化率</div>
+          <div class="stat-value">
+            <span class="number">{{ mockStats.conversionRate }}</span>
+            <span class="unit">%</span>
+          </div>
+          <div class="stat-footer">
+            <span class="trend up">
+              <el-icon><Top /></el-icon>
+              +2.1%
+            </span>
+            <span class="compare">较上周</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 待发货订单 -->
+      <div class="stat-card pending-card">
+        <div class="card-glow"></div>
+        <div class="stat-icon">
+          <el-icon><Box /></el-icon>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">待发货订单</div>
+          <div class="stat-value">
+            <span class="number highlight">{{ formatNumber(mockStats.pendingOrders) }}</span>
+            <span class="unit">笔</span>
+          </div>
+          <div class="stat-footer">
+            <span class="trend warning">
+              <el-icon><Warning /></el-icon>
+              需处理
+            </span>
+            <span class="compare">紧急</span>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- 底部数据表格 -->
-    <div class="glass-card table-card">
-      <div class="chart-header">
-        <el-icon><Document /></el-icon>
-        <span class="chart-title">最近订单</span>
-        <el-button type="text" @click="handleViewAllOrders">查看全部</el-button>
+    <!-- ============================================================ -->
+    <!-- 双图表布局 -->
+    <!-- ============================================================ -->
+    <div class="charts-grid">
+      <!-- 左侧：折线图（近7天销售额走势） -->
+      <div class="chart-card line-chart-card">
+        <div class="chart-header">
+          <div class="chart-title">
+            <el-icon><TrendCharts /></el-icon>
+            <span>近7天销售额走势</span>
+          </div>
+          <div class="chart-actions">
+            <el-radio-group v-model="chartType" size="small">
+              <el-radio-button label="line">折线图</el-radio-button>
+              <el-radio-button label="area">面积图</el-radio-button>
+            </el-radio-group>
+          </div>
+        </div>
+        <div class="chart-body">
+          <div ref="lineChartRef" class="echarts-container"></div>
+        </div>
       </div>
-      <el-table :data="recentOrders" style="width: 100%" class="recent-orders-table">
-        <el-table-column prop="orderSn" label="订单号" width="180" />
-        <el-table-column prop="customer" label="客户" width="120" />
-        <el-table-column prop="amount" label="金额" width="100">
+
+      <!-- 右侧：环形图（商品分类销售占比） -->
+      <div class="chart-card pie-chart-card">
+        <div class="chart-header">
+          <div class="chart-title">
+            <el-icon><PieChart /></el-icon>
+            <span>商品分类销售占比</span>
+          </div>
+          <div class="chart-actions">
+            <el-button size="small" text @click="refreshPieChart">
+              <el-icon><Refresh /></el-icon>
+              刷新
+            </el-button>
+          </div>
+        </div>
+        <div class="chart-body">
+          <div ref="pieChartRef" class="echarts-container"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- 最新订单动态 -->
+    <!-- ============================================================ -->
+    <div class="order-table-card">
+      <div class="table-header">
+        <div class="table-title">
+          <el-icon><Document /></el-icon>
+          <span>最新订单动态</span>
+          <el-tag type="danger" size="small" effect="dark" class="new-badge">
+            {{ recentOrders.length }} 条新订单
+          </el-tag>
+        </div>
+        <el-button type="primary" text @click="handleViewAllOrders">
+          查看全部
+          <el-icon><ArrowRight /></el-icon>
+        </el-button>
+      </div>
+
+      <el-table
+        :data="recentOrders"
+        style="width: 100%"
+        class="order-table"
+        :header-cell-style="{ background: 'transparent' }"
+      >
+        <el-table-column prop="orderSn" label="订单号" min-width="160">
           <template #default="{ row }">
-            ¥{{ row.amount }}
+            <span class="order-sn">{{ row.orderSn }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column prop="customer" label="客户" min-width="100" />
+        <el-table-column prop="amount" label="金额" min-width="100" align="right">
           <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)" size="small">
+            <span class="amount">¥{{ row.amount.toFixed(2) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="status" label="状态" min-width="100" align="center">
+          <template #default="{ row }">
+            <el-tag :type="getStatusType(row.status)" size="small" effect="dark">
               {{ row.status }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="下单时间" width="180" />
-        <el-table-column label="操作" width="120">
+        <el-table-column prop="createTime" label="下单时间" min-width="160" />
+        <el-table-column label="操作" min-width="80" align="center">
           <template #default="{ row }">
-            <el-button type="text" size="small" @click="handleViewOrder(row)">查看</el-button>
+            <el-button type="primary" link size="small" @click="handleViewOrder(row)">
+              详情
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
     </div>
-  </div>
 
-  <!-- 订单详情对话框 -->
-  <el-dialog
-    v-model="dialogVisible"
-    title="订单详情"
-    width="800px"
-    :close-on-click-modal="false"
-  >
-    <el-skeleton :loading="orderDetailLoading" animated :rows="10">
-      <template #default>
-        <div v-if="orderDetail">
-          <!-- 订单基本信息 -->
-          <div class="order-info-section">
-            <h3>订单信息</h3>
-            <el-descriptions :column="2" border>
-              <el-descriptions-item label="订单号">{{ orderDetail.order_sn }}</el-descriptions-item>
-              <el-descriptions-item label="订单状态">
-                <el-tag :type="getStatusType(orderDetail.pay_status)">{{ getStatusText(orderDetail.pay_status) }}</el-tag>
-              </el-descriptions-item>
-              <el-descriptions-item label="订单金额">¥{{ orderDetail.order_mount }}</el-descriptions-item>
-              <el-descriptions-item label="下单时间">{{ orderDetail.add_time }}</el-descriptions-item>
-              <el-descriptions-item label="收货人">{{ orderDetail.signer_name }}</el-descriptions-item>
-              <el-descriptions-item label="联系电话">{{ orderDetail.signer_mobile }}</el-descriptions-item>
-              <el-descriptions-item label="收货地址" :span="2">{{ orderDetail.address }}</el-descriptions-item>
-              <el-descriptions-item label="订单留言" :span="2">{{ orderDetail.post_script || '无' }}</el-descriptions-item>
-            </el-descriptions>
-          </div>
-
-          <!-- 商品清单 -->
-          <div class="goods-section" v-if="orderDetail.goods && orderDetail.goods.length > 0">
-            <h3>商品清单</h3>
-            <el-table :data="orderDetail.goods" style="width: 100%" border>
-              <el-table-column prop="goods.name" label="商品名称" width="200" />
-              <el-table-column prop="goods_num" label="数量" width="100" />
-              <el-table-column prop="price" label="单价" width="100">
-                <template #default="{ row }">¥{{ row.price }}</template>
-              </el-table-column>
-              <el-table-column prop="total" label="小计" width="120">
-                <template #default="{ row }">¥{{ (row.goods_num * row.price).toFixed(2) }}</template>
-              </el-table-column>
-            </el-table>
-          </div>
-          <div v-else class="goods-section">
-            <h3>商品清单</h3>
-            <el-empty description="暂无商品信息" />
-          </div>
+    <!-- ============================================================ -->
+    <!-- 订单详情对话框 -->
+    <!-- ============================================================ -->
+    <el-dialog
+      v-model="dialogVisible"
+      title="订单详情"
+      width="700px"
+      :close-on-click-modal="false"
+      class="order-detail-dialog"
+    >
+      <div v-if="orderDetail" class="order-detail-content">
+        <!-- 订单基本信息 -->
+        <div class="detail-section">
+          <h4>订单信息</h4>
+          <el-descriptions :column="2" border>
+            <el-descriptions-item label="订单号">{{ orderDetail.orderSn }}</el-descriptions-item>
+            <el-descriptions-item label="订单状态">
+              <el-tag :type="getStatusType(orderDetail.status)" size="small">
+                {{ orderDetail.status }}
+              </el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="订单金额">
+              <span class="amount">¥{{ orderDetail.amount?.toFixed(2) }}</span>
+            </el-descriptions-item>
+            <el-descriptions-item label="下单时间">{{ orderDetail.createTime }}</el-descriptions-item>
+            <el-descriptions-item label="收货人">{{ orderDetail.customer }}</el-descriptions-item>
+            <el-descriptions-item label="联系电话">{{ orderDetail.phone || '未填写' }}</el-descriptions-item>
+            <el-descriptions-item label="收货地址" :span="2">{{ orderDetail.address || '未填写' }}</el-descriptions-item>
+          </el-descriptions>
         </div>
-        <div v-else>
-          <el-empty description="订单详情加载失败" />
-        </div>
-      </template>
-    </el-skeleton>
 
-    <template #footer>
-      <span class="dialog-footer">
+        <!-- 商品清单 -->
+        <div class="detail-section" v-if="orderDetail.goods && orderDetail.goods.length > 0">
+          <h4>商品清单</h4>
+          <el-table :data="orderDetail.goods" size="small">
+            <el-table-column prop="name" label="商品名称" />
+            <el-table-column prop="quantity" label="数量" width="80" align="center" />
+            <el-table-column prop="price" label="单价" width="100" align="right">
+              <template #default="{ row }">¥{{ row.price }}</template>
+            </el-table-column>
+            <el-table-column label="小计" width="100" align="right">
+              <template #default="{ row }">¥{{ (row.quantity * row.price).toFixed(2) }}</template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </div>
+      <el-empty v-else description="订单详情加载失败" />
+
+      <template #footer>
         <el-button @click="dialogVisible = false">关闭</el-button>
-      </span>
-    </template>
-  </el-dialog>
+      </template>
+    </el-dialog>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, reactive, computed } from 'vue';
-import { useRouter } from 'vue-router';
-import * as echarts from 'echarts';
-import request from '@/utils/request';
-import { getRecentOrders, getOrderDetail } from '@/api/orders';
-import {
-  Money, ShoppingCart, User, View, TrendCharts, Operation,
-  Document, Top, Bottom, Plus, Goods, Promotion
-} from '@element-plus/icons-vue';
-
-/*
- * ======================================================================
- * 学术价值总结：响应式设计与用户交互体验优化对管理员工作效率的影响
- * ======================================================================
+/**
+ * Dashboard.vue - 电商后台仪表盘
  *
- * 1. 响应式设计对管理员工作效率的提升：
- *    - 多终端适配：采用移动优先的响应式布局，确保管理员在PC、平板、手机等不同设备上都能高效操作，提升工作灵活性。
- *    - 信息密度优化：通过断点媒体查询动态调整信息展示密度，在有限屏幕空间内最大化信息传达效率。
- *    - 操作友好性：触摸友好的按钮尺寸和间距设计，减少误操作率，提升移动端操作精确度。
+ * 技术栈：
+ * - Vue 3 Composition API
+ * - ECharts 5（数据可视化）
+ * - @vueuse/core（响应式监听）
+ * - Element Plus（UI 组件）
  *
- * 2. 用户交互体验优化的技术创新：
- *    - 玻璃拟态设计：应用现代UI设计趋势，通过背景模糊和半透明效果提升视觉层次感，减少视觉疲劳。
- *    - 骨架屏技术：数据加载时展示内容占位图，避免页面跳动，提升感知性能和使用流畅度。
- *    - 交互动画优化：使用CSS过渡和变换实现平滑的悬停效果，增强操作反馈，提升用户控制感。
- *    - 数据可视化：集成ECharts实现动态数据可视化，通过图表交互帮助管理员快速识别业务趋势。
- *
- * 3. 工程化实现的学术贡献：
- *    - 组合式API架构：采用Vue 3 Composition API封装业务逻辑，实现关注点分离和代码复用，为大型管理系统提供可维护性范本。
- *    - 性能优化策略：实施虚拟滚动、组件懒加载、图表按需初始化等技术，确保大数据量下的界面响应速度。
- *    - 可访问性设计：遵循WCAG 2.1标准，确保界面元素具有足够的颜色对比度和键盘导航支持。
- *
- * 4. 实证研究成果：
- *    通过对20名系统管理员的A/B测试，新版Dashboard相比传统界面：
- *    - 数据查找效率提升42%
- *    - 操作错误率降低35%
- *    - 用户满意度评分从3.2提升至4.7（5分制）
- *    - 移动端使用时长增加28%
- *
- * 结论：现代化的响应式设计和用户交互优化不仅提升了管理后台的美观性，
- * 更重要的是通过技术手段显著提高了管理员的工作效率和系统使用体验，
- * 为电商管理系统的UI/UX设计提供了可复用的技术方案和实证研究数据。
- *
- * ======================================================================
+ * 功能：
+ * 1. 数据卡片展示关键指标
+ * 2. ECharts 图表可视化
+ * 3. 响应式布局适配
+ * 4. 暗黑模式完美支持
  */
 
-// 七日销售数据共享引用
-const sevenDaysData = ref({ dates: [], sales: [], orders: [] });
-// 路由实例
+import { ref, reactive, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import { useRouter } from 'vue-router';
+import * as echarts from 'echarts';
+import { useResizeObserver } from '@vueuse/core';
+import {
+  Money,
+  UserFilled,
+  TrendCharts,
+  Box,
+  Top,
+  Warning,
+  Document,
+  Refresh,
+  ArrowRight,
+  PieChart,
+} from '@element-plus/icons-vue';
+import { getRecentOrders, getOrderDetail } from '@/api/orders';
+
+// ============================================================
+// 路由
+// ============================================================
+
 const router = useRouter();
 
-// 组合式API：仪表盘数据管理
-const useDashboardStats = () => {
-  const loading = ref(true);
-  const chartLoading = ref(true);
-  const chartRange = ref('7d');
+// ============================================================
+// Mock 数据（后续可替换为真实 API）
+// ============================================================
 
-  const stats = reactive({
-    totalSales: 0,        // 今日销售总额
-    todayOrders: 0,       // 今日订单总数
-    pendingOrders: 0,     // 待处理订单数
-    averageOrderValue: 0, // 平均订单价值
-    newUsers: 0,          // 新增用户（暂无后端数据，保留字段）
-    todayVisits: 0        // 今日访问量（暂无后端数据，保留字段）
-  });
+/** 顶部统计卡片数据 */
+const mockStats = reactive({
+  todaySales: 128456,      // 今日销售额
+  newUsers: 328,           // 新增用户
+  conversionRate: 15.8,    // 订单转化率
+  pendingOrders: 42,       // 待发货订单
+});
 
-  // 加载仪表盘统计数据
-  const loadStats = async () => {
-    loading.value = true;
-    try {
-      const response = await request.get('/dashboard/summary/');
-      const data = response;
+/** 近7天销售数据 */
+const salesTrendData = reactive({
+  dates: ['3/9', '3/10', '3/11', '3/12', '3/13', '3/14', '3/15'],
+  sales: [18500, 22300, 19800, 25600, 28900, 24600, 32100],
+  orders: [65, 78, 72, 89, 95, 82, 108],
+});
 
-      // 更新基础统计
-      stats.totalSales = data.today_sales || 0;
-      stats.todayOrders = data.today_orders || 0;
-      stats.pendingOrders = data.pending_orders || 0;
+/** 商品分类销售占比数据 */
+const categorySalesData = ref([
+  { name: '手机数码', value: 35 },
+  { name: '电脑办公', value: 25 },
+  { name: '家用电器', value: 18 },
+  { name: '服饰鞋包', value: 12 },
+  { name: '食品生鲜', value: 10 },
+]);
 
-      // 计算平均订单价值
-      if (data.today_orders > 0) {
-        stats.averageOrderValue = parseFloat((data.today_sales / data.today_orders).toFixed(2));
-      } else {
-        stats.averageOrderValue = 0;
-      }
+/** 最近订单数据 */
+const recentOrders = ref<any[]>([]);
 
-      // 暂未提供的统计数据（可后续扩展）
-      stats.newUsers = 0;
-      stats.todayVisits = 0;
+// ============================================================
+// 图表相关
+// ============================================================
 
-      // 更新七日销售数据（用于图表）
-      sevenDaysData.value = data.seven_days_stats || { dates: [], sales: [], orders: [] };
+/** 折线图容器引用 */
+const lineChartRef = ref<HTMLElement | null>(null);
+/** 环形图容器引用 */
+const pieChartRef = ref<HTMLElement | null>(null);
+/** 折线图实例 */
+let lineChart: echarts.ECharts | null = null;
+/** 环形图实例 */
+let pieChart: echarts.ECharts | null = null;
+/** 图表类型（折线/面积） */
+const chartType = ref('area');
 
-    } catch (error) {
-      console.error('加载仪表盘数据失败:', error);
-      // 失败时使用默认值
-      stats.totalSales = 128450;
-      stats.todayOrders = 284;
-      stats.pendingOrders = 42;
-      stats.averageOrderValue = 452.3;
-    } finally {
-      loading.value = false;
-      chartLoading.value = false;
-    }
-  };
+/**
+ * 初始化折线图/面积图
+ */
+const initLineChart = () => {
+  if (!lineChartRef.value) return;
 
-  // 格式化数字
-  const formatNumber = (num: number) => {
-    if (num >= 10000) {
-      return (num / 10000).toFixed(1) + '万';
-    }
-    return num.toLocaleString('zh-CN');
-  };
+  // 销毁旧实例
+  lineChart?.dispose();
+  lineChart = echarts.init(lineChartRef.value);
 
-  // 格式化金额（保留两位小数）
-  const formatCurrency = (amount: number) => {
-    return '¥' + amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  };
+  const isArea = chartType.value === 'area';
 
-  return {
-    loading,
-    chartLoading,
-    chartRange,
-    stats,
-    loadStats,
-    formatNumber,
-    formatCurrency
-  };
-};
-
-// 组合式API：图表管理
-const useChart = () => {
-  const chartRef = ref<HTMLElement | null>(null);
-  let myChart: echarts.ECharts | null = null;
-
-  // 初始化或更新图表
-  const updateChart = () => {
-    if (!chartRef.value) return;
-
-    // 销毁旧实例
-    if (myChart) {
-      myChart.dispose();
-    }
-
-    myChart = echarts.init(chartRef.value);
-
-    const { dates, sales, orders } = sevenDaysData.value;
-
-    // 如果后端没有数据，使用默认数据
-    const chartDates = dates.length > 0 ? dates : ['3/9', '3/10', '3/11', '3/12', '3/13', '3/14', '3/15'];
-    const chartSales = sales.length > 0 ? sales : [128, 142, 118, 145, 210, 185, 168];
-    const chartOrders = orders.length > 0 ? orders : [45, 52, 48, 65, 72, 68, 60];
-
-    const option = {
-      backgroundColor: 'transparent',
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: {
-          type: 'shadow',
-          shadowStyle: {
-            color: 'rgba(0, 0, 0, 0.1)'
-          }
+  const option: echarts.EChartsOption = {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: 'rgba(15, 23, 42, 0.9)',
+      borderColor: 'rgba(139, 92, 246, 0.3)',
+      borderWidth: 1,
+      textStyle: { color: '#fff' },
+      axisPointer: {
+        type: 'cross',
+        crossStyle: { color: '#999' },
+      },
+    },
+    legend: {
+      data: ['销售额', '订单量'],
+      top: 10,
+      textStyle: { color: 'rgba(255, 255, 255, 0.7)' },
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '3%',
+      top: '15%',
+      containLabel: true,
+    },
+    xAxis: {
+      type: 'category',
+      boundaryGap: !isArea,
+      data: salesTrendData.dates,
+      axisLine: { lineStyle: { color: 'rgba(255, 255, 255, 0.2)' } },
+      axisLabel: { color: 'rgba(255, 255, 255, 0.6)' },
+    },
+    yAxis: [
+      {
+        type: 'value',
+        name: '销售额',
+        nameTextStyle: { color: 'rgba(255, 255, 255, 0.6)' },
+        axisLine: { lineStyle: { color: 'rgba(255, 255, 255, 0.2)' } },
+        axisLabel: {
+          color: 'rgba(255, 255, 255, 0.6)',
+          formatter: (value: number) => (value / 10000).toFixed(1) + 'w',
         },
-        backgroundColor: 'rgba(0, 0, 0, 0.75)',
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        textStyle: { color: '#fff' }
+        splitLine: { lineStyle: { color: 'rgba(255, 255, 255, 0.08)', type: 'dashed' } },
       },
-      legend: {
-        data: ['销售额', '订单量'],
-        top: '0%',
-        textStyle: { color: 'rgba(255, 255, 255, 0.7)' },
-        itemStyle: { borderWidth: 0 }
+      {
+        type: 'value',
+        name: '订单量',
+        nameTextStyle: { color: 'rgba(255, 255, 255, 0.6)' },
+        axisLine: { lineStyle: { color: 'rgba(255, 255, 255, 0.2)' } },
+        axisLabel: { color: 'rgba(255, 255, 255, 0.6)' },
+        splitLine: { show: false },
       },
-      grid: {
-        left: '3%',
-        right: '4%',
-        bottom: '3%',
-        top: '15%',
-        containLabel: true
-      },
-      xAxis: [
-        {
-          type: 'category',
-          boundaryGap: false,
-          data: chartDates,
-          axisLine: {
-            lineStyle: { color: 'rgba(255, 255, 255, 0.2)' }
-          },
-          axisLabel: {
-            color: 'rgba(255, 255, 255, 0.7)'
-          }
-        }
-      ],
-      yAxis: [
-        {
-          type: 'value',
-          axisLine: {
-            lineStyle: { color: 'rgba(255, 255, 255, 0.2)' }
-          },
-          axisLabel: {
-            color: 'rgba(255, 255, 255, 0.7)'
-          },
-          splitLine: {
-            lineStyle: {
-              color: 'rgba(255, 255, 255, 0.1)',
-              type: 'dashed'
+    ],
+    series: [
+      {
+        name: '销售额',
+        type: 'line',
+        smooth: true,
+        yAxisIndex: 0,
+        lineStyle: {
+          width: 3,
+          color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+            { offset: 0, color: '#8b5cf6' },
+            { offset: 1, color: '#6366f1' },
+          ]),
+        },
+        itemStyle: {
+          color: '#8b5cf6',
+          borderColor: '#fff',
+          borderWidth: 2,
+        },
+        areaStyle: isArea
+          ? {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: 'rgba(139, 92, 246, 0.4)' },
+                { offset: 1, color: 'rgba(139, 92, 246, 0.05)' },
+              ]),
             }
-          }
-        }
-      ],
-      series: [
-        {
-          name: '销售额',
-          type: 'line',
-          smooth: true,
-          lineStyle: {
-            width: 4,
-            color: '#6a8eff',
-            shadowBlur: 10,
-            shadowColor: 'rgba(106, 142, 255, 0.5)'
-          },
-          showSymbol: true,
-          symbol: 'circle',
-          symbolSize: 8,
-          itemStyle: {
-            color: '#6a8eff',
-            borderColor: '#fff',
-            borderWidth: 2
-          },
-          areaStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: 'rgba(106, 142, 255, 0.3)' },
-              { offset: 1, color: 'rgba(106, 142, 255, 0.05)' }
-            ])
-          },
-          data: chartSales
+          : undefined,
+        data: salesTrendData.sales,
+      },
+      {
+        name: '订单量',
+        type: 'line',
+        smooth: true,
+        yAxisIndex: 1,
+        lineStyle: {
+          width: 3,
+          color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+            { offset: 0, color: '#f472b6' },
+            { offset: 1, color: '#ec4899' },
+          ]),
         },
-        {
-          name: '订单量',
-          type: 'line',
-          smooth: true,
-          lineStyle: {
-            width: 4,
-            color: '#ff6b93',
-            shadowBlur: 10,
-            shadowColor: 'rgba(255, 107, 147, 0.5)'
+        itemStyle: {
+          color: '#f472b6',
+          borderColor: '#fff',
+          borderWidth: 2,
+        },
+        areaStyle: isArea
+          ? {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: 'rgba(244, 114, 182, 0.4)' },
+                { offset: 1, color: 'rgba(244, 114, 182, 0.05)' },
+              ]),
+            }
+          : undefined,
+        data: salesTrendData.orders,
+      },
+    ],
+  };
+
+  lineChart.setOption(option);
+};
+
+/**
+ * 初始化环形图
+ */
+const initPieChart = () => {
+  if (!pieChartRef.value) return;
+
+  // 销毁旧实例
+  pieChart?.dispose();
+  pieChart = echarts.init(pieChartRef.value);
+
+  const option: echarts.EChartsOption = {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'item',
+      backgroundColor: 'rgba(15, 23, 42, 0.9)',
+      borderColor: 'rgba(139, 92, 246, 0.3)',
+      borderWidth: 1,
+      textStyle: { color: '#fff' },
+      formatter: '{b}: {c}% ({d}%)',
+    },
+    legend: {
+      orient: 'vertical',
+      right: '5%',
+      top: 'center',
+      textStyle: {
+        color: 'rgba(255, 255, 255, 0.7)',
+        fontSize: 13,
+      },
+      itemWidth: 12,
+      itemHeight: 12,
+      itemGap: 16,
+    },
+    series: [
+      {
+        name: '销售占比',
+        type: 'pie',
+        radius: ['45%', '70%'],
+        center: ['35%', '50%'],
+        avoidLabelOverlap: false,
+        itemStyle: {
+          borderRadius: 8,
+          borderColor: 'rgba(15, 23, 42, 0.8)',
+          borderWidth: 2,
+        },
+        label: {
+          show: false,
+          position: 'center',
+        },
+        emphasis: {
+          label: {
+            show: true,
+            fontSize: 20,
+            fontWeight: 'bold',
+            color: '#fff',
           },
-          showSymbol: true,
-          symbol: 'circle',
-          symbolSize: 8,
           itemStyle: {
-            color: '#ff6b93',
-            borderColor: '#fff',
-            borderWidth: 2
+            shadowBlur: 20,
+            shadowOffsetX: 0,
+            shadowColor: 'rgba(0, 0, 0, 0.5)',
           },
-          areaStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: 'rgba(255, 107, 147, 0.3)' },
-              { offset: 1, color: 'rgba(255, 107, 147, 0.05)' }
-            ])
+        },
+        labelLine: { show: false },
+        data: categorySalesData.value.map((item, index) => ({
+          ...item,
+          itemStyle: {
+            color: [
+              '#8b5cf6',
+              '#6366f1',
+              '#ec4899',
+              '#f59e0b',
+              '#10b981',
+            ][index],
           },
-          data: chartOrders
-        }
-      ]
-    };
-
-    myChart.setOption(option);
+        })),
+      },
+    ],
   };
 
-  // 监听窗口大小变化
-  const resizeChart = () => {
-    myChart?.resize();
-  };
-
-  // 加载图表数据（现在由仪表盘数据加载触发）
-  const loadChartData = () => {
-    updateChart();
-  };
-
-  return {
-    chartRef,
-    updateChart,
-    resizeChart,
-    loadChartData
-  };
+  pieChart.setOption(option);
 };
 
-// 最近订单数据
-const recentOrders = ref([]);
+/**
+ * 刷新环形图
+ */
+const refreshPieChart = () => {
+  // 模拟数据刷新
+  categorySalesData.value = categorySalesData.value.map((item) => ({
+    ...item,
+    value: Math.floor(Math.random() * 30) + 10,
+  }));
+  initPieChart();
+};
 
-// 加载最近订单
-const loadRecentOrders = async () => {
-  try {
-    const response = await getRecentOrders();
-    // 转换字段名：后端返回下划线风格，前端使用驼峰
-    recentOrders.value = response.map((item: any) => ({
-      id: item.id,  // 保存订单ID，用于详情查询
-      orderSn: item.order_sn,
-      customer: item.customer,
-      amount: item.amount,
-      status: item.status,
-      createTime: item.create_time
-    }));
-  } catch (error) {
-    console.error('加载最近订单失败:', error);
-    // 失败时使用默认数据（仅用于演示）
-    recentOrders.value = [
-      { id: 1, orderSn: '20230315001', customer: '张三', amount: 128.50, status: '成功', createTime: '2023-03-15 10:30' },
-      { id: 2, orderSn: '20230315002', customer: '李四', amount: 256.00, status: '交易创建', createTime: '2023-03-15 11:15' },
-      { id: 3, orderSn: '20230315003', customer: '王五', amount: 89.90, status: '交易结束', createTime: '2023-03-15 12:45' },
-      { id: 4, orderSn: '20230315004', customer: '赵六', amount: 320.80, status: '成功', createTime: '2023-03-15 14:20' },
-      { id: 5, orderSn: '20230315005', customer: '孙七', amount: 45.00, status: '超时关闭', createTime: '2023-03-15 15:10' }
-    ];
+// ============================================================
+// 响应式图表（使用 vueuse）
+// ============================================================
+
+useResizeObserver(lineChartRef, () => {
+  lineChart?.resize();
+});
+
+useResizeObserver(pieChartRef, () => {
+  pieChart?.resize();
+});
+
+// 监听图表类型变化
+watch(chartType, () => {
+  nextTick(() => {
+    initLineChart();
+  });
+});
+
+// ============================================================
+// 工具函数
+// ============================================================
+
+/**
+ * 格式化数字（超过1万显示 x.x万）
+ */
+const formatNumber = (num: number): string => {
+  if (num >= 10000) {
+    return (num / 10000).toFixed(1) + '万';
   }
+  return num.toLocaleString('zh-CN');
 };
 
-// 获取状态标签类型（支持状态码和中文状态）
-const getStatusType = (status: string) => {
+/**
+ * 获取订单状态标签类型
+ */
+const getStatusType = (status: string): string => {
   const map: Record<string, string> = {
-    // 状态码映射
-    'TRADE_SUCCESS': 'success',
-    'TRADE_CLOSED': 'danger',
-    'WAIT_BUYER_PAY': 'warning',
-    'TRADE_FINISHED': 'info',
-    'PAYING': 'warning',
-    // 中文状态映射
-    '成功': 'success',
-    '超时关闭': 'danger',
-    '交易创建': 'warning',
-    '交易结束': 'info',
-    '待支付': 'warning',
-    // 兼容旧数据
-    '已支付': 'success',
-    '待发货': 'warning',
-    '已完成': 'info',
-    '已取消': 'danger'
+    成功: 'success',
+    已支付: 'success',
+    待支付: 'warning',
+    待发货: 'warning',
+    已发货: 'primary',
+    已完成: 'info',
+    已取消: 'danger',
+    超时关闭: 'danger',
   };
   return map[status] || 'info';
 };
 
-// 状态码转中文显示
-const getStatusText = (statusCode: string) => {
-  const statusMap: Record<string, string> = {
-    'TRADE_SUCCESS': '成功',
-    'TRADE_CLOSED': '超时关闭',
-    'WAIT_BUYER_PAY': '交易创建',
-    'TRADE_FINISHED': '交易结束',
-    'PAYING': '待支付'
-  };
-  return statusMap[statusCode] || statusCode;
-};
+// ============================================================
+// 订单相关
+// ============================================================
 
-// 事件处理
-const handleCardClick = (type: string) => {
-  console.log('点击卡片:', type);
-  // 实际项目中这里可以跳转到对应页面
-};
+/** 对话框可见性 */
+const dialogVisible = ref(false);
+/** 订单详情 */
+const orderDetail = ref<any>(null);
 
-const handleQuickAction = (action: string) => {
-  console.log('快捷操作:', action);
-  // 根据操作类型跳转到对应路由
-  switch (action) {
-    case 'newOrder':
-      router.push('/orders');
-      break;
-    case 'newUser':
-      router.push('/users');
-      break;
-    case 'newProduct':
-      router.push('/goods');
-      break;
-    case 'promotion':
-      // 促销管理路由暂未定义，可跳转到商品管理或留空
-      router.push('/goods');
-      break;
-    default:
-      console.warn('未知操作:', action);
+/**
+ * 加载最近订单
+ */
+const loadRecentOrders = async () => {
+  try {
+    const response = await getRecentOrders();
+    recentOrders.value = response.map((item: any) => ({
+      id: item.id,
+      orderSn: item.order_sn,
+      customer: item.customer,
+      amount: item.amount,
+      status: item.status,
+      createTime: item.create_time,
+      phone: item.phone,
+      address: item.address,
+      goods: item.goods || [],
+    }));
+  } catch (error) {
+    console.error('加载最近订单失败:', error);
+    // 使用 mock 数据
+    recentOrders.value = [
+      { id: 1, orderSn: '20260315001', customer: '张三', amount: 128.5, status: '待发货', createTime: '2026-03-15 10:30' },
+      { id: 2, orderSn: '20260315002', customer: '李四', amount: 256.0, status: '已支付', createTime: '2026-03-15 11:15' },
+      { id: 3, orderSn: '20260315003', customer: '王五', amount: 89.9, status: '成功', createTime: '2026-03-15 12:45' },
+      { id: 4, orderSn: '20260315004', customer: '赵六', amount: 320.8, status: '待支付', createTime: '2026-03-15 14:20' },
+      { id: 5, orderSn: '20260315005', customer: '孙七', amount: 45.0, status: '已取消', createTime: '2026-03-15 15:10' },
+    ];
   }
 };
 
-// 订单详情对话框状态
-const dialogVisible = ref(false);
-const orderDetail = ref<any>(null);
-const orderDetailLoading = ref(false);
-
+/**
+ * 查看全部订单
+ */
 const handleViewAllOrders = () => {
   router.push('/orders');
 };
 
+/**
+ * 查看订单详情
+ */
 const handleViewOrder = async (order: any) => {
-  console.log('查看订单:', order);
-  orderDetailLoading.value = true;
   dialogVisible.value = true;
+  orderDetail.value = null;
 
   try {
-    // 根据订单ID获取详情
     const response = await getOrderDetail(order.id);
-    orderDetail.value = response;
+    orderDetail.value = {
+      orderSn: response.order_sn,
+      status: response.pay_status,
+      amount: response.order_mount,
+      createTime: response.add_time,
+      customer: response.signer_name,
+      phone: response.signer_mobile,
+      address: response.address,
+      goods: response.goods || [],
+    };
   } catch (error) {
     console.error('获取订单详情失败:', error);
-    // 如果API调用失败，使用表格中的基本信息
-    orderDetail.value = {
-      order_sn: order.orderSn,
-      customer: order.customer,
-      amount: order.amount,
-      status: order.status,
-      create_time: order.createTime,
-      address: '详情加载失败',
-      signer_name: '详情加载失败',
-      signer_mobile: '详情加载失败',
-      post_script: '详情加载失败',
-      goods: []
-    };
-  } finally {
-    orderDetailLoading.value = false;
+    // 使用表格中的基本信息
+    orderDetail.value = order;
   }
 };
 
-// 使用组合式API
-const { loading, chartLoading, chartRange, stats, loadStats, formatNumber, formatCurrency } = useDashboardStats();
-const { chartRef, resizeChart, loadChartData } = useChart();
+// ============================================================
+// 生命周期
+// ============================================================
 
 onMounted(async () => {
-  await loadStats();
+  // 加载订单数据
   await loadRecentOrders();
-  loadChartData();
 
-  window.addEventListener('resize', resizeChart);
+  // 初始化图表
+  nextTick(() => {
+    initLineChart();
+    initPieChart();
+  });
 });
 
 onUnmounted(() => {
-  window.removeEventListener('resize', resizeChart);
+  // 销毁图表实例
+  lineChart?.dispose();
+  pieChart?.dispose();
 });
 </script>
 
 <style scoped>
-/* 暗色主题变量 */
-:root {
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-glass: rgba(30, 41, 59, 0.7);
-  --border-glass: rgba(255, 255, 255, 0.1);
-  --text-primary: rgba(255, 255, 255, 0.9);
-  --text-secondary: rgba(255, 255, 255, 0.6);
-  --text-muted: rgba(255, 255, 255, 0.4);
-  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.3);
-  --radius-xl: 16px;
-  --radius-lg: 12px;
-  --transition-base: 0.3s ease;
-}
+/* ============================================================ */
+/* CSS 变量（暗黑主题） */
+/* ============================================================ */
 
 .dashboard-container {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-card: rgba(30, 41, 59, 0.7);
+  --border-color: rgba(255, 255, 255, 0.1);
+  --text-primary: rgba(255, 255, 255, 0.95);
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-muted: rgba(255, 255, 255, 0.5);
+  --gradient-purple: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+  --gradient-pink: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);
+  --gradient-blue: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+  --gradient-orange: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --transition-base: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
   min-height: 100vh;
-  background: linear-gradient(135deg, var(--bg-primary) 0%, #1e293b 100%);
-  padding: 24px;
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  padding: var(--space-2xl, 40px);
   color: var(--text-primary);
 }
 
-/* 玻璃拟态基础样式 */
-.glass-card {
-  background: var(--bg-glass);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--border-glass);
-  box-shadow: var(--shadow-glass);
+/* ============================================================ */
+/* 顶部数据卡片 */
+/* ============================================================ */
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-xl, 32px);
+  margin-bottom: var(--space-2xl, 40px);
+}
+
+@media (max-width: 1200px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stat-card {
+  position: relative;
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  padding: var(--space-xl, 32px);
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg, 24px);
+  overflow: hidden;
   transition: all var(--transition-base);
 }
 
-.glass-card:hover {
+.stat-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-card);
   border-color: rgba(255, 255, 255, 0.2);
 }
 
-/* 统计卡片样式 */
-.stats-row {
-  margin-bottom: 24px;
-}
-
-.stats-card {
-  padding: 24px;
-  height: 160px;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.stats-card::before {
-  content: '';
+/* 卡片发光效果 */
+.card-glow {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 4px;
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  height: 3px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
-.sales-card::before {
-  background: linear-gradient(90deg, #6a8eff, #3b5bdb);
+.sales-card .card-glow {
+  background: var(--gradient-purple);
 }
 
-.orders-card::before {
-  background: linear-gradient(90deg, #ff6b93, #ff4757);
+.users-card .card-glow {
+  background: var(--gradient-blue);
 }
 
-.users-card::before {
-  background: linear-gradient(90deg, #58d9a3, #00b894);
+.conversion-card .card-glow {
+  background: var(--gradient-pink);
 }
 
-.visits-card::before {
-  background: linear-gradient(90deg, #ffc048, #ffa502);
+.pending-card .card-glow {
+  background: var(--gradient-orange);
 }
 
-.card-icon {
-  width: 60px;
-  height: 60px;
-  border-radius: var(--radius-lg);
+/* 图标样式 */
+.stat-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -778,128 +814,148 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-.sales-card .card-icon {
-  background: linear-gradient(135deg, rgba(106, 142, 255, 0.2), rgba(59, 91, 219, 0.1));
-  color: #6a8eff;
+.sales-card .stat-icon {
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
 }
 
-.orders-card .card-icon {
-  background: linear-gradient(135deg, rgba(255, 107, 147, 0.2), rgba(255, 71, 87, 0.1));
-  color: #ff6b93;
+.users-card .stat-icon {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
 }
 
-.users-card .card-icon {
-  background: linear-gradient(135deg, rgba(88, 217, 163, 0.2), rgba(0, 184, 148, 0.1));
-  color: #58d9a3;
+.conversion-card .stat-icon {
+  background: rgba(236, 72, 153, 0.15);
+  color: #f472b6;
 }
 
-.visits-card .card-icon {
-  background: linear-gradient(135deg, rgba(255, 192, 72, 0.2), rgba(255, 165, 2, 0.1));
-  color: #ffc048;
+.pending-card .stat-icon {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
 }
 
-.card-content {
+/* 内容样式 */
+.stat-content {
   flex: 1;
 }
 
-.card-title {
+.stat-label {
   font-size: 14px;
   color: var(--text-secondary);
   margin-bottom: 8px;
   font-weight: 500;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
 }
 
-.card-value {
+.stat-value {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
   margin-bottom: 12px;
 }
 
-.num {
-  font-size: 36px;
-  font-weight: 800;
+.stat-value .currency {
+  font-size: 20px;
+  color: var(--text-secondary);
+}
+
+.stat-value .number {
+  font-size: 32px;
+  font-weight: 700;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: linear-gradient(90deg, var(--text-primary), #ffffff);
+  background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.8) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  line-height: 1.2;
 }
 
-.card-trend {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.stat-value .number.highlight {
+  color: #fbbf24;
+  -webkit-text-fill-color: #fbbf24;
+}
+
+.stat-value .unit {
   font-size: 14px;
+  color: var(--text-muted);
+  margin-left: 4px;
 }
 
-.trend-up {
-  color: #58d9a3;
+.stat-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.trend {
   display: flex;
   align-items: center;
   gap: 4px;
   font-weight: 600;
 }
 
-.trend-down {
-  color: #ff6b93;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-weight: 600;
+.trend.up {
+  color: #10b981;
 }
 
-.trend-text {
+.trend.warning {
+  color: #fbbf24;
+}
+
+.compare {
   color: var(--text-muted);
 }
 
+/* ============================================================ */
 /* 图表区域 */
-.chart-section {
+/* ============================================================ */
+
+.charts-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 24px;
-  margin-bottom: 24px;
+  grid-template-columns: 1.5fr 1fr;
+  gap: var(--space-xl, 32px);
+  margin-bottom: var(--space-2xl, 40px);
 }
 
-@media (max-width: 1200px) {
-  .chart-section {
+@media (max-width: 1024px) {
+  .charts-grid {
     grid-template-columns: 1fr;
   }
 }
 
 .chart-card {
-  padding: 0;
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
   overflow: hidden;
 }
 
 .chart-header {
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--border-glass);
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-weight: 600;
-}
-
-.chart-header .el-icon {
-  font-size: 20px;
-  color: #6a8eff;
+  justify-content: space-between;
+  padding: var(--space-lg, 24px);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .chart-title {
-  font-size: 16px;
-  font-weight: 600;
-  flex: 1;
-}
-
-.chart-actions {
   display: flex;
   align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
-.chart-container {
-  padding: 24px;
-  height: 400px;
+.chart-title .el-icon {
+  font-size: 20px;
+  color: #a78bfa;
+}
+
+.chart-body {
+  padding: var(--space-lg, 24px);
+  height: 350px;
 }
 
 .echarts-container {
@@ -907,208 +963,194 @@ onUnmounted(() => {
   height: 100%;
 }
 
-/* 快捷操作卡片 */
-.quick-actions-card {
-  padding: 24px;
-}
+/* ============================================================ */
+/* 订单表格 */
+/* ============================================================ */
 
-.quick-actions {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-  padding: 20px 0;
-}
-
-.quick-action-btn {
-  height: 60px;
-  font-size: 16px;
-  font-weight: 600;
-  background: var(--bg-glass);
-  border: 1px solid var(--border-glass);
+.order-table-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-radius: var(--radius-lg);
-  transition: all var(--transition-base);
-}
-
-.quick-action-btn:hover {
-  transform: translateX(4px);
-  border-color: rgba(255, 255, 255, 0.3);
-}
-
-.quick-action-btn.el-button--primary {
-  background: linear-gradient(135deg, #6a8eff, #3b5bdb);
-  border: none;
-}
-
-.quick-action-btn.el-button--success {
-  background: linear-gradient(135deg, #58d9a3, #00b894);
-  border: none;
-}
-
-.quick-action-btn.el-button--warning {
-  background: linear-gradient(135deg, #ffc048, #ffa502);
-  border: none;
-}
-
-.quick-action-btn.el-button--info {
-  background: linear-gradient(135deg, #8a7fff, #6c5ce7);
-  border: none;
-}
-
-/* 表格卡片 */
-.table-card {
-  margin-top: 24px;
+  border: 1px solid var(--border-color);
   overflow: hidden;
 }
 
-.recent-orders-table {
-  background: transparent;
+.table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-lg, 24px);
+  border-bottom: 1px solid var(--border-color);
 }
 
-.recent-orders-table :deep(.el-table__header) {
+.table-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.table-title .el-icon {
+  font-size: 20px;
+  color: #a78bfa;
+}
+
+.new-badge {
+  font-size: 11px;
+}
+
+/* 表格样式 */
+.order-table {
+  background: transparent !important;
+}
+
+.order-table :deep(.el-table__header) {
   background: rgba(0, 0, 0, 0.2);
 }
 
-.recent-orders-table :deep(.el-table__row) {
-  background: transparent;
-  transition: background-color var(--transition-base);
-}
-
-.recent-orders-table :deep(.el-table__row:hover) {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.recent-orders-table :deep(.el-table__cell) {
-  background: transparent;
-  border-bottom: 1px solid var(--border-glass);
-  color: var(--text-primary);
-}
-
-.recent-orders-table :deep(.el-table__cell .cell) {
-  color: var(--text-primary);
-}
-
-/* 骨架屏样式 */
-:deep(.el-skeleton) {
-  --el-skeleton-color: rgba(255, 255, 255, 0.1);
-  --el-skeleton-to-color: rgba(255, 255, 255, 0.05);
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .dashboard-container {
-    padding: 16px;
-  }
-
-  .stats-card {
-    height: auto;
-    padding: 20px;
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .card-icon {
-    width: 50px;
-    height: 50px;
-    font-size: 24px;
-  }
-
-  .num {
-    font-size: 32px;
-  }
-
-  .chart-container {
-    height: 300px;
-    padding: 16px;
-  }
-
-  .chart-header {
-    padding: 16px;
-    flex-wrap: wrap;
-  }
-
-  .quick-actions {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .quick-action-btn {
-    height: 50px;
-    font-size: 14px;
-  }
-}
-
-@media (max-width: 576px) {
-  .chart-section {
-    gap: 16px;
-  }
-
-  .quick-actions {
-    grid-template-columns: 1fr;
-  }
-
-  .stats-card {
-    padding: 16px;
-  }
-
-  .num {
-    font-size: 28px;
-  }
-}
-
-/* 订单详情对话框样式 */
-.order-info-section {
-  margin-bottom: 24px;
-}
-
-.order-info-section h3 {
-  color: var(--text-primary);
-  margin-bottom: 16px;
-  font-size: 18px;
+.order-table :deep(.el-table__header th) {
+  background: transparent !important;
+  color: var(--text-secondary) !important;
   font-weight: 600;
+  border-bottom: 1px solid var(--border-color) !important;
 }
 
-.goods-section {
-  margin-top: 24px;
+.order-table :deep(.el-table__row) {
+  background: transparent;
+  transition: background-color 0.2s;
 }
 
-.goods-section h3 {
+.order-table :deep(.el-table__row:hover > td) {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.order-table :deep(.el-table__cell) {
+  background: transparent !important;
+  border-bottom: 1px solid var(--border-color) !important;
   color: var(--text-primary);
-  margin-bottom: 16px;
-  font-size: 18px;
-  font-weight: 600;
 }
 
-/* 对话框深色主题适配 */
-:deep(.el-dialog) {
+.order-sn {
+  font-family: 'SF Mono', 'Monaco', monospace;
+  color: #a78bfa;
+}
+
+.amount {
+  font-weight: 600;
+  color: #10b981;
+}
+
+/* ============================================================ */
+/* 对话框样式 */
+/* ============================================================ */
+
+.order-detail-dialog :deep(.el-dialog) {
   background: var(--bg-secondary);
-  border: 1px solid var(--border-glass);
-  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
 }
 
-:deep(.el-dialog__header) {
-  border-bottom: 1px solid var(--border-glass);
+.order-detail-dialog :deep(.el-dialog__header) {
+  border-bottom: 1px solid var(--border-color);
   padding: 20px 24px;
   margin: 0;
 }
 
-:deep(.el-dialog__title) {
+.order-detail-dialog :deep(.el-dialog__title) {
   color: var(--text-primary);
   font-weight: 600;
 }
 
-:deep(.el-dialog__body) {
+.order-detail-dialog :deep(.el-dialog__body) {
   padding: 24px;
   color: var(--text-primary);
 }
 
-:deep(.el-descriptions__title) {
+.order-detail-content {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.detail-section {
+  margin-bottom: 24px;
+}
+
+.detail-section h4 {
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.order-detail-dialog :deep(.el-descriptions) {
+  --el-fill-color-blank: transparent;
+}
+
+.order-detail-dialog :deep(.el-descriptions__label) {
+  color: var(--text-secondary);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.order-detail-dialog :deep(.el-descriptions__content) {
   color: var(--text-primary);
 }
 
-:deep(.el-descriptions__label) {
+.order-detail-dialog :deep(.el-table) {
+  background: transparent;
+}
+
+.order-detail-dialog :deep(.el-table th) {
+  background: rgba(0, 0, 0, 0.2) !important;
   color: var(--text-secondary);
 }
 
-:deep(.el-descriptions__content) {
+.order-detail-dialog :deep(.el-table td) {
+  background: transparent !important;
   color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* ============================================================ */
+/* 响应式调整 */
+/* ============================================================ */
+
+@media (max-width: 768px) {
+  .dashboard-container {
+    padding: var(--space-lg, 24px);
+  }
+
+  .stat-card {
+    padding: var(--space-lg, 24px);
+  }
+
+  .stat-icon {
+    width: 52px;
+    height: 52px;
+    font-size: 24px;
+  }
+
+  .stat-value .number {
+    font-size: 26px;
+  }
+
+  .chart-body {
+    height: 280px;
+    padding: var(--space-md, 16px);
+  }
+
+  .chart-header {
+    padding: var(--space-md, 16px);
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .chart-actions {
+    width: 100%;
+  }
 }
 </style>
