@@ -23,6 +23,12 @@ import os
 import uuid
 import random
 import hashlib
+import logging
+
+# ============================================================
+# 模块级日志器
+# ============================================================
+logger = logging.getLogger(__name__)
 
 
 # ============================================================
@@ -277,24 +283,19 @@ class ProductViewSet(viewsets.ModelViewSet):
                 return filtered_qs.filter(id__in=product_ids)
 
             # ============================================================
-            # ES 返回空结果：降级到 MySQL 搜索
+            # ES 返回空结果：静默降级到 MySQL 搜索
             # 场景：ES 索引为空、索引未同步、或分词器不匹配
             # ============================================================
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.info(f"Elasticsearch 返回空结果，降级到 MySQL 搜索: {search_query}")
-
+            logger.info(f"[搜索降级] ES 索引无数据，使用 MySQL 模糊查询: {search_query}")
             return fallback_mysql_search(filtered_qs, search_query)
 
-        except Exception as e:
+        except Exception:
             # ============================================================
-            # ES 异常：降级到 MySQL 搜索
+            # ES 异常：静默降级到 MySQL 搜索（不打印完整堆栈）
             # 场景：ES 服务宕机、网络不通、配置错误
+            # 设计理念：搜索服务应该"永远可用"，降级对用户透明
             # ============================================================
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.warning(f"Elasticsearch 搜索异常，降级到 MySQL 查询: {str(e)}")
-
+            logger.warning("[搜索降级] Elasticsearch 连接失败，已自动降级为 MySQL 模糊查询")
             return fallback_mysql_search(filtered_qs, search_query)
 
 

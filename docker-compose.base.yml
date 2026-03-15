@@ -1,0 +1,78 @@
+# ============================================================
+# docker-compose.base.yml
+# 本地开发基础服务编排文件
+#
+# 用途：一键启动 Elasticsearch 和 Redis 中间件
+# 适用场景：本地开发、毕业设计演示、CI/CD 测试环境
+#
+# 使用方法：
+#   启动服务：docker-compose -f docker-compose.base.yml up -d
+#   停止服务：docker-compose -f docker-compose.base.yml down
+#   查看状态：docker-compose -f docker-compose.base.yml ps
+#   查看日志：docker-compose -f docker-compose.base.yml logs -f
+#
+# 注意事项：
+#   - Elasticsearch 首次启动较慢（约 30-60 秒），请耐心等待
+#   - 如需持久化数据，取消 volumes 配置的注释
+#   - Windows 用户需确保 Docker Desktop 已启动
+# ============================================================
+
+version: '3.8'
+
+services:
+  # ============================================================
+  # Redis - 缓存服务
+  # 端口：6379
+  # 用途：Django 缓存后端、Session 存储
+  # ============================================================
+  redis:
+    image: redis:7-alpine
+    container_name: mall_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    # 持久化配置（可选，取消注释启用）
+    # volumes:
+    #   - redis_data:/data
+    # command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================
+  # Elasticsearch - 全文搜索引擎
+  # 版本：7.17.7（与 django-elasticsearch-dsl 兼容）
+  # 端口：9200（HTTP API）、9300（节点通信，已禁用）
+  # 用途：商品搜索、中文分词
+  # ============================================================
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.7
+    container_name: mall_elasticsearch
+    restart: unless-stopped
+    environment:
+      # 单节点模式（开发环境）
+      - discovery.type=single-node
+      # 关闭安全验证（简化本地开发）
+      - xpack.security.enabled=false
+      # 内存限制（防止占用过多内存）
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    # 持久化配置（可选，取消注释启用）
+    # volumes:
+    #   - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+# 持久化存储卷（取消 volumes 配置注释后启用）
+# volumes:
+#   redis_data:
+#     driver: local
+#   es_data:
+#     driver: local
