@@ -198,9 +198,13 @@ export function useHomeData(): UseHomeDataReturn {
       // 各自处理数据，互不阻塞
       if (catRes) {
         // 兼容 DRF 分页格式和普通数组格式
-        categoryList.value = (catRes as any).results
+        let categories = (catRes as any).results
           ? (catRes as any).results
           : (catRes as CategoryItem[]);
+        // 过滤掉测试分类
+        categoryList.value = categories.filter(
+          (item: CategoryItem) => item.name !== '并发测试分类'
+        );
       }
 
       if (bannerRes) {

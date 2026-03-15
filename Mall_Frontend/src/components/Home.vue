@@ -162,17 +162,9 @@
             <el-icon :size="28"><Document /></el-icon>
             <span>我的订单</span>
           </div>
-          <div class="entry-item" @click="router.push('/profile')">
-            <el-icon :size="28"><User /></el-icon>
-            <span>个人中心</span>
-          </div>
           <div class="entry-item" @click="cartStore.toggleDrawer(true)">
             <el-icon :size="28"><ShoppingCart /></el-icon>
             <span>购物车</span>
-          </div>
-          <div class="entry-item entry-highlight">
-            <el-icon :size="28"><Present /></el-icon>
-            <span>会员福利</span>
           </div>
         </aside>
       </section>
@@ -294,8 +286,6 @@ import {
   ArrowRight,
   Picture,
   Document,
-  User,
-  Present,
   RefreshRight,
   Top,
 } from '@element-plus/icons-vue';

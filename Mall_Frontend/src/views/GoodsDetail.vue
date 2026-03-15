@@ -5,9 +5,8 @@
     功能特性：
     1. 左侧图片画廊（主图 + 缩略图 hover 切换）
     2. 右侧商品信息（名称、价格、描述）
-    3. SKU 选择器（前端模拟颜色/版本）
-    4. 数量选择器 + 购物车操作
-    5. 玻璃拟态卡片效果
+    3. 数量选择器 + 购物车操作
+    4. 玻璃拟态卡片效果
   -->
   <div class="goods-detail-page">
     <!-- ============================================================ -->
@@ -80,19 +79,9 @@
         <!-- ==================== 右侧商品信息 ==================== -->
         <section class="info-section">
           <div class="info-card">
-            <!-- 商品标题与标签 -->
+            <!-- 商品标题 -->
             <div class="title-area">
               <h1 class="goods-title">{{ goodsInfo.name }}</h1>
-              <div class="goods-tags">
-                <el-tag type="danger" size="small" effect="dark" class="tag-item">
-                  <el-icon><TrendCharts /></el-icon>
-                  热卖
-                </el-tag>
-                <el-tag type="warning" size="small" effect="dark" class="tag-item">
-                  <el-icon><Present /></el-icon>
-                  限时优惠
-                </el-tag>
-              </div>
             </div>
 
             <!-- 商品简介 -->
@@ -102,15 +91,7 @@
             <div class="price-area">
               <div class="price-main">
                 <span class="price-symbol">¥</span>
-                <span class="price-integer">{{ priceParts.integer }}</span>
-                <span class="price-decimal">.{{ priceParts.decimal }}</span>
-              </div>
-              <div class="price-original" v-if="goodsInfo.original_price">
-                <span>原价</span>
-                <span class="original-value">¥{{ (goodsInfo.original_price / 100).toFixed(2) }}</span>
-              </div>
-              <div class="price-discount" v-if="discountPercent > 0">
-                <span class="discount-tag">{{ discountPercent }}% OFF</span>
+                <span class="price-value">{{ formatPrice(goodsInfo.shop_price) }}</span>
               </div>
             </div>
 
@@ -129,48 +110,6 @@
               <div class="stat-item">
                 <span class="stat-label">好评率</span>
                 <span class="stat-value highlight">98%</span>
-              </div>
-            </div>
-
-            <!-- ==================== SKU 选择器（前端模拟） ==================== -->
-            <div class="sku-area">
-              <!-- 颜色选择 -->
-              <div class="sku-row">
-                <span class="sku-label">颜色</span>
-                <div class="sku-options">
-                  <div
-                    v-for="color in mockSkuOptions.colors"
-                    :key="color.value"
-                    class="sku-option color-option"
-                    :class="{ active: selectedColor === color.value, disabled: color.disabled }"
-                    @click="!color.disabled && (selectedColor = color.value)"
-                  >
-                    <span
-                      class="color-dot"
-                      :style="{ backgroundColor: color.color }"
-                    ></span>
-                    <span class="option-name">{{ color.label }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 版本选择 -->
-              <div class="sku-row">
-                <span class="sku-label">版本</span>
-                <div class="sku-options">
-                  <div
-                    v-for="version in mockSkuOptions.versions"
-                    :key="version.value"
-                    class="sku-option version-option"
-                    :class="{ active: selectedVersion === version.value, disabled: version.disabled }"
-                    @click="!version.disabled && (selectedVersion = version.value)"
-                  >
-                    <span class="option-name">{{ version.label }}</span>
-                    <span class="option-price" v-if="version.priceDiff">
-                      {{ version.priceDiff > 0 ? '+' : '' }}¥{{ Math.abs(version.priceDiff) }}
-                    </span>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -263,9 +202,8 @@
  *
  * 功能：
  * 1. 图片画廊（主图 + 缩略图 hover 切换）
- * 2. SKU 选择器（前端模拟）
- * 3. 数量选择器
- * 4. 加入购物车 / 立即购买
+ * 2. 数量选择器
+ * 3. 加入购物车 / 立即购买
  */
 
 import { ref, computed, onMounted } from 'vue';
@@ -274,8 +212,6 @@ import {
   ArrowRight,
   ShoppingCart,
   ZoomIn,
-  TrendCharts,
-  Present,
   Lightning,
   CircleCheck,
   Van,
@@ -317,32 +253,6 @@ const buyCount = ref(1);
 const isAddingToCart = ref(false);
 
 // ============================================================
-// SKU 选择状态（前端模拟）
-// ============================================================
-
-/** 选中的颜色 */
-const selectedColor = ref('black');
-
-/** 选中的版本 */
-const selectedVersion = ref('128g');
-
-/** 模拟的 SKU 选项数据 */
-const mockSkuOptions = {
-  colors: [
-    { label: '星空黑', value: 'black', color: '#1a1a2e', disabled: false },
-    { label: '远峰蓝', value: 'blue', color: '#4a90d9', disabled: false },
-    { label: '月光银', value: 'silver', color: '#c0c0c0', disabled: false },
-    { label: '玫瑰金', value: 'gold', color: '#e8b4b8', disabled: true }, // 缺货
-  ],
-  versions: [
-    { label: '128GB', value: '128g', priceDiff: 0, disabled: false },
-    { label: '256GB', value: '256g', priceDiff: 300, disabled: false },
-    { label: '512GB', value: '512g', priceDiff: 800, disabled: false },
-    { label: '1TB', value: '1t', priceDiff: 1500, disabled: true }, // 缺货
-  ],
-};
-
-// ============================================================
 // 计算属性
 // ============================================================
 
@@ -371,39 +281,19 @@ const currentMainImage = computed(() => {
   return galleryImages.value[currentImageIndex.value] || '';
 });
 
-/**
- * 价格拆分（整数部分和小数部分）
- */
-const priceParts = computed(() => {
-  if (!goodsInfo.value) return { integer: '0', decimal: '00' };
-  const price = goodsInfo.value.shop_price / 100; // 假设价格以分为单位
-  const [integer, decimal = '00'] = price.toFixed(2).split('.');
-  return { integer, decimal };
-});
+// ============================================================
+// 工具函数
+// ============================================================
 
 /**
- * 折扣百分比
+ * 格式化价格（确保显示两位小数）
  */
-const discountPercent = computed(() => {
-  if (!goodsInfo.value?.original_price || !goodsInfo.value?.shop_price) return 0;
-  const original = goodsInfo.value.original_price;
-  const current = goodsInfo.value.shop_price;
-  if (original <= current) return 0;
-  return Math.round((1 - current / original) * 100);
-});
-
-/**
- * 计算最终价格（考虑 SKU 差价）
- */
-const finalPrice = computed(() => {
-  if (!goodsInfo.value) return 0;
-  let price = goodsInfo.value.shop_price;
-  const version = mockSkuOptions.versions.find(v => v.value === selectedVersion.value);
-  if (version?.priceDiff) {
-    price += version.priceDiff * 100; // 差价以分为单位
+const formatPrice = (price: number | undefined | null): string => {
+  if (price === undefined || price === null || isNaN(price)) {
+    return '0.00';
   }
-  return price;
-});
+  return price.toFixed(2);
+};
 
 // ============================================================
 // 数据获取
@@ -719,18 +609,7 @@ onMounted(() => {
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.3;
-  margin-bottom: var(--space-md);
-}
-
-.goods-tags {
-  display: flex;
-  gap: var(--space-sm);
-}
-
-.tag-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  margin: 0;
 }
 
 /* 商品简介 */
@@ -773,44 +652,11 @@ onMounted(() => {
   margin-right: 2px;
 }
 
-.price-integer {
+.price-value {
   font-size: 42px;
   font-weight: 700;
   color: var(--danger);
   line-height: 1;
-}
-
-.price-decimal {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--danger);
-}
-
-.price-original {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.price-original span:first-child {
-  font-size: 12px;
-  color: var(--text-tertiary);
-}
-
-.original-value {
-  font-size: 16px;
-  color: var(--text-tertiary);
-  text-decoration: line-through;
-}
-
-.discount-tag {
-  display: inline-flex;
-  padding: 4px 12px;
-  background: var(--danger);
-  color: white;
-  font-size: 12px;
-  font-weight: 700;
-  border-radius: var(--radius-full);
 }
 
 /* ============================================================ */
@@ -853,99 +699,6 @@ onMounted(() => {
   width: 1px;
   height: 32px;
   background: var(--bg-tertiary);
-}
-
-/* ============================================================ */
-/* SKU 选择器 */
-/* ============================================================ */
-
-.sku-area {
-  margin-bottom: var(--space-2xl);
-}
-
-.sku-row {
-  display: flex;
-  align-items: flex-start;
-  margin-bottom: var(--space-xl);
-}
-
-.sku-row:last-child {
-  margin-bottom: 0;
-}
-
-.sku-label {
-  flex-shrink: 0;
-  width: 60px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  padding-top: 10px;
-}
-
-.sku-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-md);
-}
-
-.sku-option {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-sm) var(--space-lg);
-  border: 2px solid var(--bg-tertiary);
-  border-radius: var(--radius-lg);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  background: var(--bg-primary);
-}
-
-.sku-option:hover:not(.disabled) {
-  border-color: var(--primary-light);
-  background: rgba(139, 92, 246, 0.05);
-}
-
-.sku-option.active {
-  border-color: var(--primary-color);
-  background: rgba(139, 92, 246, 0.1);
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
-}
-
-.sku-option.disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  position: relative;
-}
-
-.sku-option.disabled::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: var(--text-tertiary);
-  transform: rotate(-10deg);
-}
-
-/* 颜色选项 */
-.color-option .color-dot {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 2px solid rgba(0, 0, 0, 0.1);
-}
-
-.option-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.option-price {
-  font-size: 12px;
-  color: var(--danger);
-  margin-left: var(--space-xs);
 }
 
 /* ============================================================ */
@@ -1110,7 +863,7 @@ onMounted(() => {
     font-size: 22px;
   }
 
-  .price-integer {
+  .price-value {
     font-size: 32px;
   }
 
@@ -1139,16 +892,6 @@ onMounted(() => {
 }
 
 @media (max-width: 480px) {
-  .sku-row {
-    flex-direction: column;
-    gap: var(--space-sm);
-  }
-
-  .sku-label {
-    width: auto;
-    padding-top: 0;
-  }
-
   .quantity-area {
     flex-direction: column;
     align-items: flex-start;
